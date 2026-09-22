@@ -1,0 +1,1246 @@
+// BeastClip AI Client Application Logic
+let currentJobId = null;
+let pollInterval = null;
+let currentClipsMap = {};
+let activeVoiceClipId = null;
+let activePublishClipId = null;
+let activeEditClipId = null;
+let mediaRecorder = null;
+let audioChunks = [];
+let recordedBlob = null;
+let connectedChannelData = null;
+
+const PRESET_CREATOR_URLS = {
+    ishowspeed: {
+        url: "https://www.youtube.com/@IShowSpeed",
+        tag: "@IShowSpeed"
+    },
+    kaicenat: {
+        url: "https://www.youtube.com/@KaiCenat",
+        tag: "@KaiCenat"
+    },
+    jynxzi: {
+        url: "https://www.youtube.com/@Jynxzi",
+        tag: "@Jynxzi"
+    },
+    caseoh: {
+        url: "https://www.youtube.com/@CaseOh",
+        tag: "@CaseOh"
+    }
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+    lucide.createIcons();
+    initPresets();
+    initEventListeners();
+    checkYouTubeStatus();
+});
+
+function initPresets() {
+    document.querySelectorAll(".preset-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const key = btn.getAttribute("data-preset");
+            const preset = PRESET_CREATOR_URLS[key];
+            if (preset) {
+                document.getElementById("videoUrlInput").value = preset.url;
+                document.getElementById("creatorCreditInput").value = preset.tag;
+            }
+        });
+    });
+}
+
+function initEventListeners() {
+    // Fetch info button
+    document.getElementById("fetchInfoBtn").addEventListener("click", fetchVideoInfo);
+
+    // Generate clips button
+    document.getElementById("generateBtn").addEventListener("click", startClipGeneration);
+
+    // Edit Metadata Modal triggers
+    document.getElementById("closeEditModalBtn")?.addEventListener("click", closeEditMetadataModal);
+    document.getElementById("cancelEditModalBtn")?.addEventListener("click", closeEditMetadataModal);
+    document.getElementById("saveEditModalBtn")?.addEventListener("click", saveEditedMetadata);
+    document.getElementById("editTitleInput")?.addEventListener("input", (e) => {
+        document.getElementById("editTitleCharCount").innerText = `${e.target.value.length}/100`;
+    });
+
+    // YouTube Auth Modal triggers
+    document.getElementById("ytChannelBadge").addEventListener("click", () => {
+        document.getElementById("ytAuthModal").classList.remove("hidden");
+    });
+    document.getElementById("closeYtModalBtn").addEventListener("click", () => {
+        document.getElementById("ytAuthModal").classList.add("hidden");
+    });
+    document.getElementById("saveYtCredsBtn").addEventListener("click", setupYouTubeAuth);
+
+    // YouTube Single Publish Modal triggers
+    document.getElementById("closeYtPublishModalBtn").addEventListener("click", closePublishModal);
+    document.getElementById("closeYtSuccessModalBtn").addEventListener("click", closePublishModal);
+    document.getElementById("confirmPublishBtn").addEventListener("click", submitPublishShort);
+
+    // Timing mode toggles (Now vs Auto vs Manual)
+    document.querySelectorAll('input[name="publishTimingMode"]').forEach(radio => {
+        radio.addEventListener("change", onTimingModeChanged);
+    });
+
+    // Quick Schedule Pills
+    document.querySelectorAll(".sched-pill").forEach(pill => {
+        pill.addEventListener("click", () => applySchedulePreset(pill));
+    });
+
+    // Title Char Count
+    document.getElementById("publishTitleInput").addEventListener("input", (e) => {
+        document.getElementById("publishTitleCharCount").innerText = `${e.target.value.length}/100`;
+    });
+
+    // YouTube Batch Schedule Modal triggers
+    document.getElementById("dripScheduleAllBtn").addEventListener("click", openBatchScheduleModal);
+    document.getElementById("closeYtBatchModalBtn").addEventListener("click", closeBatchScheduleModal);
+    document.getElementById("closeBatchResultsBtn").addEventListener("click", closeBatchScheduleModal);
+    document.getElementById("confirmBatchScheduleBtn").addEventListener("click", submitBatchSchedule);
+    document.getElementById("batchStartDatetime").addEventListener("change", updateBatchSchedulePreview);
+    document.getElementById("batchCadenceSelect").addEventListener("change", updateBatchSchedulePreview);
+
+    document.querySelectorAll('input[name="batchMode"]').forEach(radio => {
+        radio.addEventListener("change", onBatchModeChanged);
+    });
+
+    // Voice Modal close
+    document.getElementById("closeVoiceModalBtn").addEventListener("click", () => {
+        document.getElementById("voiceModal").classList.add("hidden");
+    });
+
+    // Mic recording
+    document.getElementById("recordMicBtn").addEventListener("click", toggleMicRecording);
+    document.getElementById("applyMicBtn").addEventListener("click", submitMicVoiceover);
+    document.getElementById("applyTtsBtn").addEventListener("click", submitTtsVoiceover);
+
+    // Auto Fetch Handle button
+    document.getElementById("autoFetchHandleBtn")?.addEventListener("click", autoFetchCreatorHandle);
+}
+
+// ==================== INGESTION & PIPELINE ====================
+
+async function autoFetchCreatorHandle() {
+    const url = document.getElementById("videoUrlInput").value.trim();
+    if (!url) {
+        showToast("Please enter a YouTube video URL first!");
+        return;
+    }
+    const btn = document.getElementById("autoFetchHandleBtn");
+    btn.disabled = true;
+    btn.innerHTML = `<div class="w-3 h-3 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin"></div> Fetching...`;
+
+    try {
+        const res = await fetch("/api/extract-info", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url })
+        });
+        const data = await res.json();
+        if (res.ok && data.uploader) {
+            const handle = `@${data.uploader.replace(/\s+/g, '')}`;
+            document.getElementById("creatorCreditInput").value = handle;
+            showToast(`Fetched handle: ${handle}`);
+        } else {
+            showToast("Could not auto-detect handle");
+        }
+    } catch (e) {
+        console.error(e);
+        showToast("Error fetching creator handle");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i data-lucide="sparkles" class="w-3.5 h-3.5 text-indigo-400"></i> Auto Fetch Handle`;
+        lucide.createIcons();
+    }
+}
+
+async function fetchVideoInfo() {
+    const url = document.getElementById("videoUrlInput").value.trim();
+    if (!url) {
+        showToast("Please enter a YouTube video URL first!");
+        return;
+    }
+
+    const btn = document.getElementById("fetchInfoBtn");
+    btn.disabled = true;
+    btn.innerText = "Loading...";
+
+    try {
+        const res = await fetch("/api/extract-info", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+            const durationMins = data.duration ? Math.round(data.duration / 60) : 0;
+            document.getElementById("videoTitleLabel").innerText = data.title || "Stream Highlight";
+            document.getElementById("videoMetaLabel").innerText = `${data.uploader || 'Creator'} • ${durationMins} mins`;
+            if (data.thumbnail) {
+                document.getElementById("videoThumbImg").src = data.thumbnail;
+            }
+            document.getElementById("videoInfoCard").classList.remove("hidden");
+            if (data.uploader && !document.getElementById("creatorCreditInput").value) {
+                document.getElementById("creatorCreditInput").value = `@${data.uploader.replace(/\s+/g, '')}`;
+            }
+            showToast("Video info loaded successfully!");
+        } else {
+            alert(`Error: ${data.detail || 'Could not fetch video info'}`);
+        }
+    } catch (e) {
+        console.error("fetchVideoInfo error:", e);
+        showToast("Could not parse video info.");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "Fetch Info";
+    }
+}
+
+async function startClipGeneration() {
+    const url = document.getElementById("videoUrlInput").value.trim();
+    if (!url) {
+        alert("Please enter a YouTube URL to clip!");
+        return;
+    }
+
+    const layout = document.querySelector('input[name="layout"]:checked')?.value || "split_screen";
+    const subtitleStyle = document.querySelector('input[name="subStyle"]:checked')?.value || "hormozi";
+    const targetDuration = parseInt(document.getElementById("clipDurationSelect").value, 10);
+    const numClips = parseInt(document.getElementById("clipCountSelect").value, 10);
+    const creatorCredit = document.getElementById("creatorCreditInput").value.trim();
+    const enableSeamlessLoop = document.getElementById("seamlessLoopToggle")?.checked ?? true;
+
+    const generateBtn = document.getElementById("generateBtn");
+    generateBtn.disabled = true;
+    generateBtn.innerHTML = `<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Generating...`;
+
+    // Show progress card
+    const progressCard = document.getElementById("progressCard");
+    progressCard.classList.remove("hidden");
+    document.getElementById("progressBarFill").style.width = "5%";
+    document.getElementById("progressPercent").innerText = "5%";
+    document.getElementById("progressStatusText").innerHTML = `<span>Starting BeastClip AI pipeline...</span>`;
+
+    try {
+        const res = await fetch("/api/process-video", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                url,
+                target_duration: targetDuration,
+                num_clips: numClips,
+                subtitle_style: subtitleStyle,
+                layout: layout,
+                creator_credit: creatorCredit || null,
+                enable_copyright_shield: true,
+                enable_seamless_loop: enableSeamlessLoop
+            })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            currentJobId = data.job_id;
+            pollInterval = setInterval(pollJobStatus, 2000);
+        } else {
+            alert(`Failed: ${data.detail}`);
+            generateBtn.disabled = false;
+            generateBtn.innerHTML = `<i data-lucide="zap" class="w-5 h-5"></i> GENERATE VIRAL SHORTS NOW`;
+            lucide.createIcons();
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Network error starting pipeline.");
+        generateBtn.disabled = false;
+        generateBtn.innerHTML = `<i data-lucide="zap" class="w-5 h-5"></i> GENERATE VIRAL SHORTS NOW`;
+        lucide.createIcons();
+    }
+}
+
+async function pollJobStatus() {
+    if (!currentJobId) return;
+
+    try {
+        const res = await fetch(`/api/status/${currentJobId}`);
+        const job = await res.json();
+
+        if (res.ok) {
+            const progress = job.progress || 0;
+            document.getElementById("progressBarFill").style.width = `${progress}%`;
+            document.getElementById("progressPercent").innerText = `${progress}%`;
+            document.getElementById("progressStatusText").innerHTML = `<span>${job.message || 'Processing...'}</span>`;
+
+            if (job.status === "completed") {
+                clearInterval(pollInterval);
+                document.getElementById("generateBtn").disabled = false;
+                document.getElementById("generateBtn").innerHTML = `<i data-lucide="zap" class="w-5 h-5"></i> GENERATE VIRAL SHORTS NOW`;
+                lucide.createIcons();
+                renderGeneratedClips(job.clips || []);
+            } else if (job.status === "failed") {
+                clearInterval(pollInterval);
+                alert(`Processing failed: ${job.error}`);
+                document.getElementById("generateBtn").disabled = false;
+                document.getElementById("generateBtn").innerHTML = `<i data-lucide="zap" class="w-5 h-5"></i> GENERATE VIRAL SHORTS NOW`;
+                lucide.createIcons();
+            }
+        }
+    } catch (e) {
+        console.error("Poll error:", e);
+    }
+}
+
+function renderGeneratedClips(clips) {
+    const grid = document.getElementById("clipsGrid");
+    const emptyPlaceholder = document.getElementById("emptyGalleryPlaceholder");
+    const countBadge = document.getElementById("clipsCountBadge");
+
+    currentClipsMap = {};
+
+    if (!clips || clips.length === 0) {
+        emptyPlaceholder.classList.remove("hidden");
+        countBadge.classList.add("hidden");
+        document.getElementById("dripScheduleAllBtn").classList.add("hidden");
+        grid.innerHTML = "";
+        return;
+    }
+
+    clips.forEach(c => {
+        currentClipsMap[c.clip_id] = c;
+    });
+
+    emptyPlaceholder.classList.add("hidden");
+    countBadge.innerText = `${clips.length} Viral Shorts Ready`;
+    countBadge.classList.remove("hidden");
+    document.getElementById("dripScheduleAllBtn").classList.remove("hidden");
+    grid.innerHTML = "";
+
+    clips.forEach(clip => {
+        const card = document.createElement("div");
+        card.className = "glass-panel p-4 shadow-xl space-y-4 border-white/10 flex flex-col";
+
+        card.innerHTML = `
+            <!-- Top Badges -->
+            <div class="flex items-center justify-between">
+                <span class="text-xs px-2.5 py-1 rounded-md bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30">
+                    #${clip.rank} Viral Highlight
+                </span>
+                <div class="flex items-center gap-1.5">
+                    <span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold badge-hype">
+                        🔥 ${clip.virality_score}% Virality
+                    </span>
+                    <span class="text-[10px] text-gray-400 font-mono">${clip.duration}s</span>
+                </div>
+            </div>
+
+            <!-- Video Player (9:16 Vertical with Seamless Loop) -->
+            <div class="relative rounded-xl overflow-hidden bg-black aspect-short max-h-[480px] mx-auto border border-white/10">
+                <video id="video_${clip.clip_id}" controls loop playsinline poster="${clip.thumbnail_url}" class="w-full h-full object-cover">
+                    <source src="${clip.video_url}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+
+            <!-- Title & Hook Snippet with Click-to-Edit -->
+            <div class="space-y-1">
+                <div class="flex items-start justify-between gap-2">
+                    <h4 id="title_text_${clip.clip_id}" class="text-xs font-bold text-white leading-snug line-clamp-2 cursor-pointer hover:text-yellow-300 transition" onclick="openEditMetadataModal('${clip.clip_id}')" title="Click to edit title & description">
+                        ${escapeHtml(clip.title)}
+                    </h4>
+                    <button onclick="openEditMetadataModal('${clip.clip_id}')" class="p-1 rounded-lg bg-yellow-500/10 hover:bg-yellow-500/25 border border-yellow-500/30 text-yellow-400 transition flex-shrink-0" title="Edit Title & Description">
+                        <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+                <p class="text-[10px] text-gray-400 italic line-clamp-2">"${escapeHtml(clip.transcript)}"</p>
+            </div>
+
+            <!-- Action Buttons Grid -->
+            <div class="grid grid-cols-2 gap-2 mt-auto pt-2 border-t border-white/5">
+                <button onclick="openEditMetadataModal('${clip.clip_id}')" class="py-2 px-2 bg-yellow-500/15 hover:bg-yellow-500/30 border border-yellow-500/40 rounded-lg text-[11px] font-bold text-yellow-300 flex items-center justify-center gap-1.5 transition col-span-2 shadow-sm">
+                    <i data-lucide="edit-3" class="w-3.5 h-3.5 text-yellow-400"></i> Edit Title & Description
+                </button>
+                <button onclick="copyClipField('${clip.clip_id}', 'title')" class="py-1.5 px-2 bg-white/5 hover:bg-white/10 rounded-lg text-[11px] font-medium text-gray-300 flex items-center justify-center gap-1.5 transition">
+                    <i data-lucide="copy" class="w-3.5 h-3.5 text-indigo-400"></i> Copy Title
+                </button>
+                <button onclick="copyClipField('${clip.clip_id}', 'tags')" class="py-1.5 px-2 bg-white/5 hover:bg-white/10 rounded-lg text-[11px] font-medium text-gray-300 flex items-center justify-center gap-1.5 transition">
+                    <i data-lucide="hash" class="w-3.5 h-3.5 text-pink-400"></i> Copy Tags
+                </button>
+                <button onclick="copyClipField('${clip.clip_id}', 'description')" class="py-1.5 px-2 bg-white/5 hover:bg-white/10 rounded-lg text-[11px] font-medium text-gray-300 flex items-center justify-center gap-1.5 transition col-span-2">
+                    <i data-lucide="file-text" class="w-3.5 h-3.5 text-yellow-400"></i> Copy Description + Credits
+                </button>
+                <button onclick="openVoiceModal('${clip.clip_id}')" class="py-2 px-2 bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/40 rounded-lg text-[11px] font-bold text-purple-200 flex items-center justify-center gap-1.5 transition">
+                    <i data-lucide="mic" class="w-3.5 h-3.5 text-purple-300"></i> Add Voiceover
+                </button>
+                <a href="${clip.video_url}" download="Short_${clip.clip_id}.mp4" class="py-2 px-2 bg-white/10 hover:bg-white/20 rounded-lg text-[11px] font-bold text-white flex items-center justify-center gap-1.5 transition text-center">
+                    <i data-lucide="download" class="w-3.5 h-3.5"></i> Download MP4
+                </a>
+                <button onclick="openPublishModal('${clip.clip_id}')" class="py-2 px-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 rounded-lg text-[11px] font-bold text-white flex items-center justify-center gap-1.5 transition col-span-2 shadow-lg shadow-red-500/20">
+                    <i data-lucide="youtube" class="w-4 h-4"></i> Upload / Schedule to YouTube
+                </button>
+            </div>
+        `;
+
+        grid.appendChild(card);
+    });
+
+    lucide.createIcons();
+}
+
+function openEditMetadataModal(clipId) {
+    const clip = currentClipsMap[clipId];
+    if (!clip) return;
+    activeEditClipId = clipId;
+
+    document.getElementById("editTitleInput").value = clip.title || "";
+    document.getElementById("editTitleCharCount").innerText = `${(clip.title || "").length}/100`;
+    document.getElementById("editDescTextarea").value = clip.description || "";
+    document.getElementById("editTagsInput").value = clip.tags_string || (clip.tags || []).join(" ");
+    
+    // Populate AI Title Suggestions
+    const suggestionsList = document.getElementById("editTitleSuggestionsList");
+    suggestionsList.innerHTML = "";
+    const suggestions = clip.title_suggestions || [];
+    if (suggestions.length > 0) {
+        document.getElementById("editTitleSuggestionsBox").classList.remove("hidden");
+        suggestions.forEach(s => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "text-left text-[11px] p-2 px-3 rounded-lg bg-white/5 hover:bg-yellow-500/20 border border-white/10 text-gray-300 hover:text-yellow-300 transition flex items-center justify-between";
+            btn.innerHTML = `<span class="truncate font-medium">${escapeHtml(s)}</span> <i data-lucide="arrow-up-left" class="w-3 h-3 flex-shrink-0 text-yellow-400"></i>`;
+            btn.onclick = () => {
+                document.getElementById("editTitleInput").value = s;
+                document.getElementById("editTitleCharCount").innerText = `${s.length}/100`;
+            };
+            suggestionsList.appendChild(btn);
+        });
+        lucide.createIcons();
+    } else {
+        document.getElementById("editTitleSuggestionsBox").classList.add("hidden");
+    }
+
+    document.getElementById("editMetadataModal").classList.remove("hidden");
+}
+
+function closeEditMetadataModal() {
+    document.getElementById("editMetadataModal").classList.add("hidden");
+    activeEditClipId = null;
+}
+
+async function saveEditedMetadata() {
+    if (!activeEditClipId) return;
+    const clip = currentClipsMap[activeEditClipId];
+    if (!clip) return;
+
+    const newTitle = document.getElementById("editTitleInput").value.trim() || clip.title;
+    const newDesc = document.getElementById("editDescTextarea").value.trim() || clip.description;
+    const newTagsStr = document.getElementById("editTagsInput").value.trim();
+
+    // Update locally in memory
+    clip.title = newTitle;
+    clip.description = newDesc;
+    clip.tags_string = newTagsStr;
+    clip.tags = newTagsStr.split(/\s+/).filter(t => t.startsWith("#"));
+
+    // Update DOM on card
+    const titleEl = document.getElementById(`title_text_${activeEditClipId}`);
+    if (titleEl) {
+        titleEl.innerText = newTitle;
+    }
+
+    // Persist to backend
+    try {
+        await fetch("/api/clips/update-metadata", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                job_id: currentJobId,
+                clip_id: activeEditClipId,
+                title: newTitle,
+                description: newDesc,
+                tags: clip.tags
+            })
+        });
+    } catch (e) {
+        console.error("Update metadata error:", e);
+    }
+
+    showToast("Title & Description Saved!");
+    closeEditMetadataModal();
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function copyClipField(clipId, field) {
+    const clip = currentClipsMap[clipId];
+    if (!clip) return;
+
+    let text = "";
+    let msg = "";
+    if (field === "title") {
+        text = clip.title;
+        msg = "Title Copied!";
+    } else if (field === "tags") {
+        text = clip.tags_string || (clip.tags || []).join(" ");
+        msg = "Hashtags Copied!";
+    } else if (field === "description") {
+        text = clip.description;
+        msg = "Description & Credits Copied!";
+    }
+
+    navigator.clipboard.writeText(text).then(() => {
+        showToast(msg);
+    }).catch(err => {
+        console.error("Clipboard copy failed:", err);
+    });
+}
+
+// ==================== YOUTUBE SINGLE UPLOAD & TIMERS ====================
+
+async function checkYouTubeStatus() {
+    try {
+        const res = await fetch("/api/youtube/status");
+        const data = await res.json();
+        if (data.authenticated) {
+            connectedChannelData = data;
+            const channelName = data.title || "YouTube Connected";
+            document.getElementById("ytChannelName").innerText = channelName;
+            document.getElementById("ytConnectedTitle").innerText = channelName;
+            document.getElementById("ytPublishModalChannelName").innerText = `Target Channel: ${channelName}`;
+            document.getElementById("ytConnectedSubs").innerText = `${data.subscribers || '0'} Subscribers • ${data.video_count || '0'} Videos`;
+            if (data.avatar) {
+                document.getElementById("ytChannelAvatar").src = data.avatar;
+            }
+            document.getElementById("ytStatusConnected").classList.remove("hidden");
+            document.getElementById("ytSetupSection").classList.add("hidden");
+        }
+    } catch (e) {
+        console.log("YouTube status check:", e);
+    }
+}
+
+async function setupYouTubeAuth() {
+    const clientId = document.getElementById("ytClientIdInput").value.trim();
+    const clientSecret = document.getElementById("ytClientSecretInput").value.trim();
+
+    if (!clientId || !clientSecret) {
+        alert("Please enter both Client ID and Client Secret from Google Cloud Console!");
+        return;
+    }
+
+    try {
+        const saveRes = await fetch("/api/youtube/setup-credentials", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ client_id: clientId, client_secret: clientSecret })
+        });
+        if (!saveRes.ok) throw new Error("Could not save credentials");
+
+        const authRes = await fetch("/api/youtube/auth-url");
+        const authData = await authRes.json();
+
+        if (authData.auth_url) {
+            window.location.href = authData.auth_url;
+        } else {
+            alert("Failed to get Google OAuth URL");
+        }
+    } catch (e) {
+        alert(`Setup error: ${e.message}`);
+    }
+}
+
+function openPublishModal(clipId) {
+    const clip = currentClipsMap[clipId];
+    if (!clip) {
+        alert("Clip data not found.");
+        return;
+    }
+
+    activePublishClipId = clipId;
+
+    // Reset View Sections
+    document.getElementById("ytPublishFormSection").classList.remove("hidden");
+    document.getElementById("ytPublishLoadingSection").classList.add("hidden");
+    document.getElementById("ytPublishSuccessSection").classList.add("hidden");
+
+    // Populate Clip Info
+    document.getElementById("publishModalThumb").src = clip.thumbnail_url || '';
+    document.getElementById("publishModalRank").innerText = `#${clip.rank} Viral Highlight`;
+    document.getElementById("publishModalPreviewTitle").innerText = clip.title;
+    document.getElementById("publishModalMeta").innerText = `Duration: ${clip.duration}s • Virality: ${clip.virality_score}%`;
+
+    // Populate Fields
+    document.getElementById("publishTitleInput").value = clip.title;
+    document.getElementById("publishTitleCharCount").innerText = `${clip.title.length}/100`;
+    document.getElementById("publishDescTextarea").value = clip.description;
+
+    // Reset Timing Mode to 'now'
+    const nowRadio = document.querySelector('input[name="publishTimingMode"][value="now"]');
+    if (nowRadio) nowRadio.checked = true;
+    onTimingModeChanged();
+
+    // Set Default Custom Date to Tomorrow 11:00 AM
+    setDefaultCustomDatetime();
+
+    document.getElementById("ytPublishModal").classList.remove("hidden");
+    lucide.createIcons();
+}
+
+function closePublishModal() {
+    document.getElementById("ytPublishModal").classList.add("hidden");
+    activePublishClipId = null;
+}
+
+function getNextPeakViralTime() {
+    const now = new Date();
+    // 10 Peak YouTube Shorts Viral Slots (Local Browser Time):
+    // 7:30 AM, 9:00 AM, 11:30 AM, 1:00 PM, 3:30 PM, 5:00 PM, 7:30 PM, 9:00 PM, 10:30 PM, 12:00 AM (midnight)
+    const peakHours = [
+        { h: 7, m: 30 },
+        { h: 9, m: 0 },
+        { h: 11, m: 30 },
+        { h: 13, m: 0 },
+        { h: 15, m: 30 },
+        { h: 17, m: 0 },
+        { h: 19, m: 30 },
+        { h: 21, m: 0 },
+        { h: 22, m: 30 },
+        { h: 0, m: 0 }
+    ];
+
+    for (const slot of peakHours) {
+        let candidate;
+        if (slot.h === 0 && slot.m === 0) {
+            // Midnight at the end of today / start of tomorrow
+            candidate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
+        } else {
+            candidate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), slot.h, slot.m, 0, 0);
+        }
+        
+        // If at least 20 minutes in the future
+        if (candidate.getTime() - now.getTime() > 20 * 60 * 1000) {
+            return candidate;
+        }
+    }
+
+    // Otherwise tomorrow morning at 7:30 AM
+    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 7, 30, 0, 0);
+    return tomorrow;
+}
+
+function onTimingModeChanged() {
+    const mode = document.querySelector('input[name="publishTimingMode"]:checked')?.value || "now";
+    const autoBox = document.getElementById("autoTimerInfoBox");
+    const manualBox = document.getElementById("customSchedulePickerBox");
+    const privacyBox = document.getElementById("publishPrivacyContainer");
+    const submitBtnSpan = document.querySelector("#confirmPublishBtn span");
+
+    if (mode === "auto_timer") {
+        autoBox.classList.remove("hidden");
+        manualBox.classList.add("hidden");
+        privacyBox.classList.add("hidden");
+        const nextTime = getNextPeakViralTime();
+        document.getElementById("autoScheduledTimeBadge").innerText = nextTime.toLocaleString([], {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        submitBtnSpan.innerText = "Schedule with Automatic Smart Timer";
+    } else if (mode === "manual_timer") {
+        autoBox.classList.add("hidden");
+        manualBox.classList.remove("hidden");
+        privacyBox.classList.add("hidden");
+        submitBtnSpan.innerText = "Schedule with Manual Timer";
+    } else {
+        autoBox.classList.add("hidden");
+        manualBox.classList.add("hidden");
+        privacyBox.classList.remove("hidden");
+        submitBtnSpan.innerText = "Confirm & Upload to YouTube (Live Now)";
+    }
+}
+
+function formatDatetimeForInput(dt) {
+    const year = dt.getFullYear();
+    const month = String(dt.getMonth() + 1).padStart(2, '0');
+    const day = String(dt.getDate()).padStart(2, '0');
+    const hours = String(dt.getHours()).padStart(2, '0');
+    const mins = String(dt.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${mins}`;
+}
+
+function setDefaultCustomDatetime() {
+    const nextSlot = getNextPeakViralTime();
+    document.getElementById("customPublishDatetime").value = formatDatetimeForInput(nextSlot);
+}
+
+function applySchedulePreset(pill) {
+    const hoursOffset = pill.getAttribute("data-hours");
+    const slot = pill.getAttribute("data-slot");
+    const preset = pill.getAttribute("data-preset");
+    const now = new Date();
+
+    if (hoursOffset) {
+        now.setHours(now.getHours() + parseInt(hoursOffset, 10));
+        document.getElementById("customPublishDatetime").value = formatDatetimeForInput(now);
+        return;
+    }
+
+    if (slot) {
+        const h = parseInt(slot.substring(0, 2), 10);
+        const m = parseInt(slot.substring(2, 4), 10);
+        let targetDate;
+        if (h === 0 && m === 0) {
+            targetDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
+        } else {
+            targetDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0, 0);
+            // If slot already passed today or within 20 mins, schedule for tomorrow at this time
+            if (targetDate.getTime() - now.getTime() <= 20 * 60 * 1000) {
+                targetDate.setDate(targetDate.getDate() + 1);
+            }
+        }
+        document.getElementById("customPublishDatetime").value = formatDatetimeForInput(targetDate);
+        return;
+    }
+
+    if (preset === "tomorrow_1100") {
+        const d = new Date();
+        d.setDate(d.getDate() + 1);
+        d.setHours(11, 0, 0, 0);
+        document.getElementById("customPublishDatetime").value = formatDatetimeForInput(d);
+    } else if (preset === "tomorrow_1530") {
+        const d = new Date();
+        d.setDate(d.getDate() + 1);
+        d.setHours(15, 30, 0, 0);
+        document.getElementById("customPublishDatetime").value = formatDatetimeForInput(d);
+    } else if (preset === "tomorrow_1930") {
+        const d = new Date();
+        d.setDate(d.getDate() + 1);
+        d.setHours(19, 30, 0, 0);
+        document.getElementById("customPublishDatetime").value = formatDatetimeForInput(d);
+    } else if (preset === "nextday_1100") {
+        const d = new Date();
+        d.setDate(d.getDate() + 2);
+        d.setHours(11, 0, 0, 0);
+        document.getElementById("customPublishDatetime").value = formatDatetimeForInput(d);
+    }
+}
+
+async function submitPublishShort() {
+    if (!activePublishClipId) return;
+
+    const clip = currentClipsMap[activePublishClipId];
+    if (!clip) return;
+
+    const title = document.getElementById("publishTitleInput").value.trim();
+    const description = document.getElementById("publishDescTextarea").value.trim();
+    const timingMode = document.querySelector('input[name="publishTimingMode"]:checked')?.value || "now";
+    const privacy = document.getElementById("publishPrivacySelect").value;
+
+    if (!title) {
+        alert("Please enter a title for the Short!");
+        return;
+    }
+
+    let publishAtIso = null;
+    let publishFormattedTime = "";
+
+    if (timingMode === "auto_timer") {
+        const autoDate = getNextPeakViralTime();
+        publishAtIso = autoDate.toISOString();
+        publishFormattedTime = autoDate.toLocaleString([], {
+            dateStyle: "medium",
+            timeStyle: "short"
+        });
+    } else if (timingMode === "manual_timer") {
+        const dtVal = document.getElementById("customPublishDatetime").value;
+        if (!dtVal) {
+            alert("Please pick a date and time to schedule!");
+            return;
+        }
+
+        const scheduledDate = new Date(dtVal);
+        const now = new Date();
+        if (scheduledDate <= now) {
+            alert("The scheduled date and time must be in the future!");
+            return;
+        }
+
+        publishAtIso = scheduledDate.toISOString();
+        publishFormattedTime = scheduledDate.toLocaleString([], {
+            dateStyle: "medium",
+            timeStyle: "short"
+        });
+    }
+
+    // Switch to loading UI
+    document.getElementById("ytPublishFormSection").classList.add("hidden");
+    document.getElementById("ytPublishLoadingSection").classList.remove("hidden");
+
+    try {
+        const res = await fetch("/api/youtube/upload-short", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                clip_id: activePublishClipId,
+                title: title,
+                description: description,
+                tags: clip.tags || ["#Shorts"],
+                privacy: (timingMode === "auto_timer" || timingMode === "manual_timer") ? "private" : privacy,
+                publish_at: publishAtIso
+            })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            document.getElementById("ytPublishLoadingSection").classList.add("hidden");
+            document.getElementById("ytPublishSuccessSection").classList.remove("hidden");
+
+            if (timingMode !== "now") {
+                document.getElementById("ytPublishSuccessMsg").innerHTML = `
+                    Your Short was uploaded and <strong class="text-indigo-400 font-bold">scheduled to go public</strong> on:<br>
+                    <span class="text-sm font-semibold text-white mt-1 inline-block">📅 ${publishFormattedTime}</span>
+                `;
+            } else {
+                document.getElementById("ytPublishSuccessMsg").innerText = "Your Short is now live on your YouTube channel!";
+            }
+
+            document.getElementById("ytPublishOpenUrlBtn").href = data.youtube_url || `https://youtube.com/shorts/${data.video_id}`;
+            showToast(timingMode !== "now" ? "Short successfully scheduled on YouTube!" : "Short successfully published to YouTube!");
+            lucide.createIcons();
+        } else {
+            alert(`YouTube upload error: ${data.detail || 'Upload failed'}`);
+            document.getElementById("ytPublishLoadingSection").classList.add("hidden");
+            document.getElementById("ytPublishFormSection").classList.remove("hidden");
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Failed to communicate with YouTube API backend.");
+        document.getElementById("ytPublishLoadingSection").classList.add("hidden");
+        document.getElementById("ytPublishFormSection").classList.remove("hidden");
+    }
+}
+
+// ==================== YOUTUBE BATCH SCHEDULER ====================
+
+function openBatchScheduleModal() {
+    const clips = Object.values(currentClipsMap);
+    if (clips.length === 0) {
+        alert("No clips available to schedule!");
+        return;
+    }
+
+    // Reset views
+    document.getElementById("ytBatchFormSection").classList.remove("hidden");
+    document.getElementById("ytBatchLoadingSection").classList.add("hidden");
+    document.getElementById("ytBatchResultsSection").classList.add("hidden");
+
+    // Default to auto
+    const autoRadio = document.querySelector('input[name="batchMode"][value="auto"]');
+    if (autoRadio) autoRadio.checked = true;
+
+    // Set default start time to Tomorrow 11:00 AM
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(11, 0, 0, 0);
+    document.getElementById("batchStartDatetime").value = formatDatetimeForInput(tomorrow);
+
+    updateBatchSchedulePreview();
+
+    document.getElementById("ytBatchScheduleModal").classList.remove("hidden");
+    lucide.createIcons();
+}
+
+function closeBatchScheduleModal() {
+    document.getElementById("ytBatchScheduleModal").classList.add("hidden");
+}
+
+function onBatchModeChanged() {
+    const mode = document.querySelector('input[name="batchMode"]:checked')?.value || "auto";
+    const cadenceSelect = document.getElementById("batchCadenceSelect");
+
+    if (mode === "auto") {
+        cadenceSelect.value = "3_peak";
+    } else {
+        cadenceSelect.value = "every_6h";
+    }
+    updateBatchSchedulePreview();
+}
+
+function updateBatchSchedulePreview() {
+    const clips = Object.values(currentClipsMap);
+    const container = document.getElementById("batchSchedulePreviewList");
+    if (!container || clips.length === 0) return;
+
+    const startVal = document.getElementById("batchStartDatetime").value;
+    const baseDate = startVal ? new Date(startVal) : new Date();
+    const cadence = document.getElementById("batchCadenceSelect").value;
+
+    container.innerHTML = "";
+
+    const previewTimes = calculateBatchTimes(clips.length, baseDate, cadence);
+
+    clips.forEach((clip, idx) => {
+        const t = previewTimes[idx];
+        const timeFormatted = t.toLocaleString([], {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        const row = document.createElement("div");
+        row.className = "flex items-center justify-between p-2 rounded-lg bg-white/5 text-[11px] border border-white/5";
+        row.innerHTML = `
+            <div class="flex items-center gap-2 truncate pr-2">
+                <span class="font-bold text-indigo-400">#${clip.rank}</span>
+                <span class="text-white truncate">${escapeHtml(clip.title)}</span>
+            </div>
+            <span class="text-emerald-400 font-mono flex-shrink-0 text-[10px]">📅 ${timeFormatted}</span>
+        `;
+        container.appendChild(row);
+    });
+}
+
+function calculateBatchTimes(numClips, baseDate, cadence) {
+    const times = [];
+    let current = new Date(baseDate.getTime());
+
+    if (cadence === "every_4h") {
+        for (let i = 0; i < numClips; i++) {
+            const dt = new Date(current.getTime() + (i * 4 * 3600 * 1000));
+            times.push(dt);
+        }
+    } else if (cadence === "every_6h") {
+        for (let i = 0; i < numClips; i++) {
+            const dt = new Date(current.getTime() + (i * 6 * 3600 * 1000));
+            times.push(dt);
+        }
+    } else if (cadence === "every_12h") {
+        for (let i = 0; i < numClips; i++) {
+            const dt = new Date(current.getTime() + (i * 12 * 3600 * 1000));
+            times.push(dt);
+        }
+    } else if (cadence === "every_24h") {
+        for (let i = 0; i < numClips; i++) {
+            const dt = new Date(current.getTime() + (i * 24 * 3600 * 1000));
+            times.push(dt);
+        }
+    } else {
+        // Peak hours options
+        let peakSlots = [
+            { h: 11, m: 0 },
+            { h: 15, m: 30 },
+            { h: 19, m: 30 }
+        ];
+
+        if (cadence === "2_peak") {
+            peakSlots = [
+                { h: 11, m: 0 },
+                { h: 19, m: 30 }
+            ];
+        } else if (cadence === "1_peak") {
+            peakSlots = [
+                { h: 19, m: 30 }
+            ];
+        }
+
+        let dayOffset = 0;
+        let slotIdx = 0;
+
+        for (let i = 0; i < numClips; i++) {
+            const slot = peakSlots[slotIdx % peakSlots.length];
+            const dt = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate() + dayOffset, slot.h, slot.m, 0, 0);
+
+            times.push(dt);
+            slotIdx++;
+            if (slotIdx % peakSlots.length === 0) {
+                dayOffset++;
+            }
+        }
+    }
+
+    return times;
+}
+
+async function submitBatchSchedule() {
+    if (!currentJobId) {
+        alert("No active job to schedule!");
+        return;
+    }
+
+    const startVal = document.getElementById("batchStartDatetime").value;
+    const cadence = document.getElementById("batchCadenceSelect").value;
+    const startIso = startVal ? new Date(startVal).toISOString() : new Date().toISOString();
+
+    let shortsPerDay = 3;
+    let customHours = [11, 15.5, 19.5];
+    let intervalHours = null;
+
+    if (cadence === "2_peak") {
+        shortsPerDay = 2;
+        customHours = [11, 19.5];
+    } else if (cadence === "1_peak") {
+        shortsPerDay = 1;
+        customHours = [19.5];
+    } else if (cadence === "every_4h") {
+        intervalHours = 4;
+    } else if (cadence === "every_6h") {
+        intervalHours = 6;
+    } else if (cadence === "every_12h") {
+        intervalHours = 12;
+    } else if (cadence === "every_24h") {
+        intervalHours = 24;
+    }
+
+    // Switch to Loading View
+    document.getElementById("ytBatchFormSection").classList.add("hidden");
+    document.getElementById("ytBatchLoadingSection").classList.remove("hidden");
+
+    try {
+        const res = await fetch("/api/youtube/drip-schedule-all", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                job_id: currentJobId,
+                start_datetime: startIso,
+                shorts_per_day: shortsPerDay,
+                custom_hours: customHours,
+                interval_hours: intervalHours
+            })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            document.getElementById("ytBatchLoadingSection").classList.add("hidden");
+            document.getElementById("ytBatchResultsSection").classList.remove("hidden");
+            document.getElementById("batchResultsSummary").innerText = `Successfully scheduled ${data.total_scheduled} Shorts on YouTube!`;
+
+            const resultsList = document.getElementById("batchResultsList");
+            resultsList.innerHTML = "";
+
+            (data.results || []).forEach(r => {
+                const item = document.createElement("div");
+                item.className = "flex items-center justify-between p-2 rounded-lg bg-white/5 border border-white/5 text-[11px]";
+                if (r.status === "scheduled") {
+                    item.innerHTML = `
+                        <span class="text-white truncate">📅 ${r.scheduled_for}</span>
+                        <a href="${r.youtube_url}" target="_blank" class="px-2 py-1 bg-red-600 hover:bg-red-500 rounded text-[10px] text-white font-bold transition flex items-center gap-1">
+                            <i data-lucide="external-link" class="w-3 h-3"></i> View
+                        </a>
+                    `;
+                } else {
+                    item.innerHTML = `
+                        <span class="text-red-400 truncate">Failed: ${r.error || 'Unknown'}</span>
+                    `;
+                }
+                resultsList.appendChild(item);
+            });
+
+            showToast(`Batch scheduled ${data.total_scheduled} Shorts on YouTube!`);
+            lucide.createIcons();
+        } else {
+            alert(`Batch schedule error: ${data.detail || 'Failed to schedule'}`);
+            document.getElementById("ytBatchLoadingSection").classList.add("hidden");
+            document.getElementById("ytBatchFormSection").classList.remove("hidden");
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Failed to communicate with YouTube API backend.");
+        document.getElementById("ytBatchLoadingSection").classList.add("hidden");
+        document.getElementById("ytBatchFormSection").classList.remove("hidden");
+    }
+}
+
+function showToast(msg) {
+    const toast = document.createElement("div");
+    toast.className = "fixed bottom-6 right-6 z-50 px-4 py-2.5 rounded-xl bg-indigo-600 text-white font-bold text-xs shadow-2xl transition transform translate-y-4 opacity-0 flex items-center gap-2";
+    toast.innerHTML = `<i data-lucide="check-circle" class="w-4 h-4"></i> ${msg}`;
+    document.body.appendChild(toast);
+    lucide.createIcons();
+
+    setTimeout(() => {
+        toast.classList.remove("translate-y-4", "opacity-0");
+    }, 50);
+
+    setTimeout(() => {
+        toast.classList.add("translate-y-4", "opacity-0");
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// ==================== VOICEOVER STUDIO ====================
+
+function openVoiceModal(clipId) {
+    activeVoiceClipId = clipId;
+    document.getElementById("voiceModal").classList.remove("hidden");
+    recordedBlob = null;
+    document.getElementById("applyMicBtn").disabled = true;
+    document.getElementById("recordedAudioPreview").classList.add("hidden");
+}
+
+async function toggleMicRecording() {
+    const btn = document.getElementById("recordMicBtn");
+    const btnText = document.getElementById("recordMicBtnText");
+
+    if (mediaRecorder && mediaRecorder.state === "recording") {
+        mediaRecorder.stop();
+        btnText.innerText = "Start Recording";
+        btn.classList.remove("bg-rose-600", "text-white");
+    } else {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) audioChunks.push(e.data);
+            };
+
+            mediaRecorder.onstop = () => {
+                recordedBlob = new Blob(audioChunks, { type: "audio/wav" });
+                const audioUrl = URL.createObjectURL(recordedBlob);
+                const preview = document.getElementById("recordedAudioPreview");
+                preview.src = audioUrl;
+                preview.classList.remove("hidden");
+                document.getElementById("applyMicBtn").disabled = false;
+            };
+
+            mediaRecorder.start();
+            btnText.innerText = "Stop Recording...";
+            btn.classList.add("bg-rose-600", "text-white");
+        } catch (err) {
+            alert("Microphone permission denied or not available.");
+        }
+    }
+}
+
+async function submitMicVoiceover() {
+    if (!recordedBlob || !activeVoiceClipId) return;
+
+    const btn = document.getElementById("applyMicBtn");
+    btn.disabled = true;
+    btn.innerText = "Mixing Voiceover into Short...";
+
+    const formData = new FormData();
+    formData.append("clip_id", activeVoiceClipId);
+    formData.append("audio_file", recordedBlob, "mic_voice.wav");
+
+    try {
+        const res = await fetch("/api/add-voiceover", {
+            method: "POST",
+            body: formData
+        });
+        const data = await res.json();
+        if (res.ok) {
+            document.getElementById("voiceModal").classList.add("hidden");
+            showToast("Voiceover mixed successfully!");
+            const vid = document.getElementById(`video_${activeVoiceClipId}`);
+            if (vid) {
+                vid.src = `${data.dubbed_video_url}?t=${Date.now()}`;
+                vid.load();
+                vid.play();
+            }
+        } else {
+            alert(`Voiceover error: ${data.detail}`);
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Failed to submit voiceover audio.");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "Apply Recorded Voiceover to Short";
+    }
+}
+
+async function submitTtsVoiceover() {
+    const text = document.getElementById("ttsCommentaryText").value.trim();
+    const voice = document.getElementById("ttsVoiceSelect").value;
+    if (!text || !activeVoiceClipId) {
+        alert("Please enter commentary text!");
+        return;
+    }
+
+    const btn = document.getElementById("applyTtsBtn");
+    btn.disabled = true;
+    btn.innerText = "Generating AI Voice...";
+
+    const formData = new FormData();
+    formData.append("clip_id", activeVoiceClipId);
+    formData.append("voiceover_text", text);
+    formData.append("voice_type", voice);
+
+    try {
+        const res = await fetch("/api/add-voiceover", {
+            method: "POST",
+            body: formData
+        });
+        const data = await res.json();
+        if (res.ok) {
+            document.getElementById("voiceModal").classList.add("hidden");
+            showToast("AI Voiceover added successfully!");
+            const vid = document.getElementById(`video_${activeVoiceClipId}`);
+            if (vid) {
+                vid.src = `${data.dubbed_video_url}?t=${Date.now()}`;
+                vid.load();
+                vid.play();
+            }
+        } else {
+            alert(`AI Voice error: ${data.detail}`);
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Failed to generate AI voiceover.");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "Generate & Mix AI Voice";
+    }
+}
+
+// ==================== TOAST NOTIFICATION UTILITY ====================
+
+function showToast(message, type = "success") {
+    let container = document.getElementById("toastContainer");
+    if (!container) {
+        container = document.createElement("div");
+        container.id = "toastContainer";
+        container.className = "fixed bottom-6 right-6 z-50 flex flex-col gap-2.5 pointer-events-none";
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement("div");
+    toast.className = "pointer-events-auto px-4 py-3 rounded-xl bg-gray-950/95 text-white text-xs font-semibold shadow-2xl border border-indigo-500/40 backdrop-blur-md flex items-center gap-2.5 transform transition-all duration-300 translate-y-4 opacity-0 max-w-sm";
+    
+    const iconColor = type === "error" ? "text-rose-400" : "text-emerald-400";
+    const iconName = type === "error" ? "alert-circle" : "check-circle-2";
+
+    toast.innerHTML = `
+        <i data-lucide="${iconName}" class="w-4 h-4 ${iconColor} flex-shrink-0"></i>
+        <span class="flex-1 leading-snug">${escapeHtml(message)}</span>
+    `;
+    container.appendChild(toast);
+    lucide.createIcons();
+
+    // Fade in
+    requestAnimationFrame(() => {
+        toast.classList.remove("translate-y-4", "opacity-0");
+        toast.classList.add("translate-y-0", "opacity-100");
+    });
+
+    // Auto dismiss
+    setTimeout(() => {
+        toast.classList.remove("translate-y-0", "opacity-100");
+        toast.classList.add("translate-y-2", "opacity-0");
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 300);
+    }, 3500);
+}

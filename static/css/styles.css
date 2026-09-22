@@ -1,0 +1,93 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
+
+:root {
+    --bg-dark: #090a0f;
+    --card-bg: rgba(18, 20, 32, 0.75);
+    --card-border: rgba(255, 255, 255, 0.08);
+    --accent-primary: #6366f1;
+    --accent-secondary: #ec4899;
+    --accent-gold: #fbbf24;
+    --accent-cyan: #06b6d4;
+    --accent-lime: #10b981;
+}
+
+body {
+    font-family: 'Outfit', sans-serif;
+    background-color: var(--bg-dark);
+    background-image: 
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.12) 0px, transparent 50%);
+    color: #f3f4f6;
+    min-height: 100vh;
+}
+
+.font-display {
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+.glass-panel {
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--card-border);
+    border-radius: 1rem;
+}
+
+.glass-card {
+    background: rgba(26, 29, 46, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.25s ease;
+}
+
+.glass-card:hover {
+    border-color: rgba(99, 102, 241, 0.4);
+    transform: translateY(-2px);
+}
+
+.glow-btn {
+    background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.35);
+    transition: all 0.3s ease;
+}
+
+.glow-btn:hover {
+    box-shadow: 0 0 30px rgba(236, 72, 153, 0.55);
+    transform: translateY(-1px);
+}
+
+.glow-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* 9:16 Aspect Video Container */
+.aspect-short {
+    aspect-ratio: 9 / 16;
+}
+
+/* Pulsing Badge */
+@keyframes pulse-glow {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.85; transform: scale(1.03); }
+}
+
+.badge-hype {
+    animation: pulse-glow 2s infinite ease-in-out;
+}
