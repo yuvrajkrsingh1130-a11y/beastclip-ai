@@ -124,9 +124,12 @@ function initEventListeners() {
         radio.addEventListener("change", onBatchModeChanged);
     });
 
-    // Voice Modal close
+    // Voice Modal triggers & Preview
+    document.getElementById("previewVoiceBtn")?.addEventListener("click", previewTtsVoiceover);
     document.getElementById("closeVoiceModalBtn").addEventListener("click", () => {
         document.getElementById("voiceModal").classList.add("hidden");
+        const audio = document.getElementById("voicePreviewAudio");
+        if (audio) audio.pause();
     });
 
     // Mic recording
@@ -1442,10 +1445,59 @@ function showToast(msg) {
 
 function openVoiceModal(clipId) {
     activeVoiceClipId = clipId;
+    const clip = currentClipsMap[clipId];
+    
+    // Auto populate smart hook if empty
+    const textArea = document.getElementById("ttsCommentaryText");
+    if (clip && (!textArea.value || textArea.value.trim().length === 0)) {
+        textArea.value = `Wait until you see what happens at the end of this crazy ${clip.creator_name || 'stream'} moment!`;
+    }
+
     document.getElementById("voiceModal").classList.remove("hidden");
     recordedBlob = null;
     document.getElementById("applyMicBtn").disabled = true;
     document.getElementById("recordedAudioPreview").classList.add("hidden");
+    document.getElementById("voicePreviewAudio").classList.add("hidden");
+    document.getElementById("voiceWaveAnimation").classList.add("hidden");
+}
+
+async function previewTtsVoiceover() {
+    const text = document.getElementById("ttsCommentaryText").value.trim() || "Wait until you see what happens next in this crazy clip!";
+    const voice = document.getElementById("ttsVoiceSelect").value;
+    const btn = document.getElementById("previewVoiceBtn");
+    const audioEl = document.getElementById("voicePreviewAudio");
+    const waveEl = document.getElementById("voiceWaveAnimation");
+
+    btn.disabled = true;
+    btn.innerHTML = `<div class="w-3 h-3 border-2 border-purple-400 border-t-transparent rounded-full animate-spin"></div> Synthesizing...`;
+
+    try {
+        const res = await fetch("/api/preview-voice", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text, voice_type: voice })
+        });
+        const data = await res.json();
+        if (res.ok && data.audio_url) {
+            audioEl.src = `${data.audio_url}?t=${Date.now()}`;
+            audioEl.classList.remove("hidden");
+            waveEl.classList.remove("hidden");
+            audioEl.play();
+            audioEl.onended = () => {
+                waveEl.classList.add("hidden");
+            };
+            showToast("Playing Studio Mastered Voice Preview!");
+        } else {
+            showToast("Could not preview voice");
+        }
+    } catch (e) {
+        console.error("Preview voice error:", e);
+        showToast("Error synthesizing voice preview");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i data-lucide="volume-2" class="w-3.5 h-3.5 text-purple-400"></i> <span>Preview Audio</span>`;
+        lucide.createIcons();
+    }
 }
 
 async function toggleMicRecording() {
@@ -1532,7 +1584,7 @@ async function submitTtsVoiceover() {
 
     const btn = document.getElementById("applyTtsBtn");
     btn.disabled = true;
-    btn.innerText = "Generating AI Voice...";
+    btn.innerHTML = `<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Mastering & Mixing Audio...`;
 
     const formData = new FormData();
     formData.append("clip_id", activeVoiceClipId);
@@ -1547,7 +1599,7 @@ async function submitTtsVoiceover() {
         const data = await res.json();
         if (res.ok) {
             document.getElementById("voiceModal").classList.add("hidden");
-            showToast("AI Voiceover added successfully!");
+            showToast("Studio AI Voiceover added with High-Punch Audio!");
             const vid = document.getElementById(`video_${activeVoiceClipId}`);
             if (vid) {
                 vid.src = `${data.dubbed_video_url}?t=${Date.now()}`;
@@ -1562,7 +1614,8 @@ async function submitTtsVoiceover() {
         alert("Failed to generate AI voiceover.");
     } finally {
         btn.disabled = false;
-        btn.innerText = "Generate & Mix AI Voice";
+        btn.innerHTML = `<i data-lucide="sparkles" class="w-4 h-4"></i> Generate & Mix Voiceover to Short`;
+        lucide.createIcons();
     }
 }
 

@@ -1,4 +1,5 @@
 import re
+import random
 from backend.config import CREATOR_PRESETS
 
 class MetadataGenerator:
@@ -17,6 +18,19 @@ class MetadataGenerator:
             return CREATOR_PRESETS["caseoh"]
         return CREATOR_PRESETS["generic"]
 
+    def _analyze_context_hooks(self, text: str) -> str:
+        """Categorizes transcript into emotion tone for hook optimization."""
+        t = text.lower()
+        if any(k in t for k in ["laugh", "haha", "lmao", "dead", "funny", "joke", "crying", "aint no way", "no way"]):
+            return "humor"
+        elif any(k in t for k in ["rage", "scream", "shut up", "hate", "smash", "break", "mad", "angry", "yell"]):
+            return "rage"
+        elif any(k in t for k in ["what", "how", "omg", "oh my god", "bro", "caught", "police", "wait", "cheating", "ban"]):
+            return "shock"
+        elif any(k in t for k in ["clutch", "win", "kill", "headshot", "god", "pro", "insane", "play", "clean"]):
+            return "clutch"
+        return "general"
+
     def generate_clip_metadata(self, clip_text: str, original_title: str, uploader: str, uploader_url: str, rank: int = 1) -> dict:
         preset = self.detect_creator_preset(original_title, uploader)
         creator_name = uploader or preset["name"]
@@ -24,72 +38,108 @@ class MetadataGenerator:
         if creator_tag == "Original Creator" and uploader:
             creator_tag = f"@{uploader.replace(' ', '')}"
 
-        # Clean text snippet for hook & story summary
+        # Clean text snippet
         clean_text = re.sub(r'[^a-zA-Z0-9\s.,!?]', '', clip_text).strip()
         words = clean_text.split()
-        short_snippet = " ".join(words[:6]) if words else "INSANE Stream Moment"
-        
-        # Summarize key dialogue/moment
-        dialogue_summary = f'"{clean_text[:120]}..."' if len(clean_text) > 20 else f'"{clean_text}"'
+        short_snippet = " ".join(words[:5]) if words else "INSANE Stream Moment"
+        dialogue_summary = f'"{clean_text[:140]}..."' if len(clean_text) > 20 else f'"{clean_text}"'
 
-        # Clean creator name for titles
         clean_name = creator_name.lstrip("@").strip()
         if not clean_name:
             clean_name = "Streamer"
+        c_upper = clean_name.upper()
 
-        # High CTR Viral Title variations (never output bare handles)
-        title_templates = [
-            f"WHEN {clean_name.upper()} CANNOT STOP LAUGHING 💀",
-            f"{clean_name.upper()} DID NOT EXPECT THIS TO HAPPEN! 😱",
-            f"BRO DID NOT REALIZE WHAT HE SAID... 💀",
-            f"THE MOST CHAOTIC MOMENT EVER ON STREAM! 🔥 #Shorts",
-            f"HE ACTUALLY LOST HIS MIND OVER THIS 😭",
-            f"{clean_name.upper()}'S CRAZIEST REACTION EVER ⚡",
-            f"TOP 1% STREAMER MOMENT: {short_snippet.upper()} ⚡",
-            f"IS THIS THE FUNNIEST STREAM CLIP OF 2026? 🤣"
-        ]
-        title = title_templates[(rank - 1) % len(title_templates)]
+        context = self._analyze_context_hooks(clip_text)
+
+        # High CTR Viral Title Pools based on detected context
+        if context == "humor":
+            title_pool = [
+                f"WHEN {c_upper} CANNOT STOP LAUGHING 💀🤣",
+                f"BRO AIN'T NO WAY {c_upper} SAID THIS OUT LOUD... 💀",
+                f"THIS HAD THE ENTIRE CHAT IN LITERAL TEARS 😭💀",
+                f"{c_upper} REALLY THOUGHT NO ONE WOULD NOTICE 😭",
+                f"THE FUNNIEST 30 SECONDS ON TWITCH THIS YEAR 🤣🔥",
+                f"BRO LOST HIS ENTIRE DIGNITY ON LIVE STREAM 💀"
+            ]
+        elif context == "rage":
+            title_pool = [
+                f"{c_upper} RAGED SO HARD HIS MIC ACTUALLY BROKE 🤬💥",
+                f"WHEN {c_upper} COMPLETELY LOSES HIS MIND 😱⚡",
+                f"HE ACTUALLY SNAPPED OVER THIS GAME... 🤯🔥",
+                f"THE MOST AGGRESSIVE CRASH OUT OF 2026! 💥",
+                f"{c_upper} DESTROYED HIS SETUP AFTER THIS PLAY 😭",
+                f"NEVER MAKE {c_upper} ANGRY ON STREAM... 🤬"
+            ]
+        elif context == "shock":
+            title_pool = [
+                f"HE GOT CAUGHT IN 4K ON LIVE CAMERA! 📸💀",
+                f"{c_upper} REALIZED TOO LATE WHAT HE JUST DID... 😭😱",
+                f"THE ENDING WILL MAKE YOUR JAW DROP... 😱🤯",
+                f"BRO'S REACTION TO THIS IS ACTUALLY PRICELESS 💀",
+                f"NOBODY EXPECTED THIS TO HAPPEN ON STREAM! 🚨",
+                f"IS THIS THE MOST ILLEGAL STREAM MOMENT EVER? 😱"
+            ]
+        elif context == "clutch":
+            title_pool = [
+                f"TOP 0.001% GOD-TIER CLUTCH BY {c_upper}! 🎯🔥",
+                f"HE HIT THE CLEANEST CLIP IN STREAMING HISTORY! ⚡🏆",
+                f"WHEN {c_upper} ENTERS GOD MODE ON STREAM 🔥👑",
+                f"HOW DID HE ACTUALLY SURVIVE THIS SITUATION?! 🤯",
+                f"THE ENTIRE LOBBY JUST GOT HUMILIATED... 💀⚡"
+            ]
+        else:
+            title_pool = [
+                f"{c_upper} DID NOT EXPECT THIS TO HAPPEN! 😱🔥",
+                f"THE MOST UNHINGED MOMENT ON LIVE STREAM 💀",
+                f"BRO FORGOT HE WAS LIVE TO 100K PEOPLE 💀",
+                f"WATCH UNTIL THE VERY END... YOU WILL NOT BELIEVE THIS 😱",
+                f"{c_upper}'S WILDEST REACTION OF ALL TIME ⚡",
+                f"TOP 1% STREAM MOMENT: {short_snippet.upper()} 🔥",
+                f"THIS IS WHY {c_upper} IS THE #1 STREAMER 👑"
+            ]
+
+        # Select primary title and build suggestions
+        primary_title = title_pool[(rank - 1) % len(title_pool)]
 
         # Interactive Algorithm Booster Questions for Comments
         comment_questions = [
-            "👇 What would you have done in this situation? Let me know below!",
-            "👇 Rate this reaction from 1 to 10 in the comments!",
-            "👇 W or L reaction? Drop your thoughts below!",
-            "👇 Did he go too far with this? Tell me in the comments!",
-            "👇 Who is your favorite streamer right now? Drop a comment!"
+            "👇 Rate this moment from 1 to 10 in the comments below!",
+            "👇 What would YOU have done in this exact situation? Let me know!",
+            "👇 W or L streamer reaction? Drop your thoughts below!",
+            "👇 Did he go too far or was this valid? Let's settle this in the comments!",
+            "👇 Who is the funniest streamer right now? Drop a comment!"
         ]
         question = comment_questions[(rank - 1) % len(comment_questions)]
 
         # Targeted viral tags
-        base_tags = ["#Shorts", "#Viral", "#Trending", "#Gaming", "#FunnyMoments", "#TwitchClips", "#StreamerClips", "#YouTubeShorts"]
-        combined_tags = list(dict.fromkeys(base_tags + preset["tags"])) # Deduplicate preserving order
+        base_tags = ["#Shorts", "#Viral", "#Trending", "#Gaming", "#FunnyMoments", "#TwitchClips", "#StreamerClips", "#YouTubeShorts", f"#{clean_name.replace(' ', '')}"]
+        combined_tags = list(dict.fromkeys(base_tags + preset["tags"]))
         tags_string = " ".join(combined_tags[:10])
 
-        # Channel Link
         channel_link = uploader_url or preset["channel_url"] or "https://youtube.com"
 
-        # Engaging, Trending Viral Description
-        description = f"""🔥 {clean_name} had the most insane moment on stream! Watch until the very end to see what happens!
+        # Engaging, High-Retention Viral Description
+        description = f"""🔥 {clean_name} just delivered the most viral, unhinged moment on stream! Watch until the very end to catch the crazy ending!
 
-🎬 MOMENT HIGHLIGHT:
+🎬 THE MOMENT:
 {dialogue_summary}
 
-💬 JOIN THE CONVERSATION:
+💬 JOIN THE DEBATE:
 {question}
 
-🔔 NEVER MISS A CLIP:
-Subscribe and turn on notifications for daily viral streamer highlights, rage moments, and the funniest Twitch/YouTube clips!
+🔔 NEVER MISS A HIGHLIGHT:
+Hit Subscribe and tap the bell 🔔 for daily viral streamer moments, rage clips, and top countdown highlights!
 
 👑 ORIGINAL CREATOR ATTRIBUTION:
-• Creator: {clean_name} ({creator_tag})
+• Streamer: {clean_name} ({creator_tag})
 • Official Channel: {channel_link}
 • All credits and rights reserved to the original creator.
 
 {tags_string}"""
 
         return {
-            "title": title,
-            "title_suggestions": title_templates,
+            "title": primary_title,
+            "title_suggestions": title_pool,
             "description": description.strip(),
             "tags": combined_tags,
             "tags_string": tags_string,
@@ -101,28 +151,55 @@ Subscribe and turn on notifications for daily viral streamer highlights, rage mo
         """
         Generates high-CTR compilation title and description for Top N Countdown Shorts.
         """
-        main_creator = creator_names[0] if creator_names else "Streamer"
-        clean_name = main_creator.lstrip("@").strip()
+        unique_creators = [c.lstrip("@").strip() for c in creator_names if c.strip()]
+        if not unique_creators:
+            unique_creators = ["Streamer"]
 
-        title_templates = [
-            f"TOP {num_items} FUNNIEST {clean_name.upper()} MOMENTS OF ALL TIME! 💀 #Shorts",
-            f"TOP {num_items} CRAZIEST {clean_name.upper()} REACTIONS EVER! 😱🔥",
-            f"TOP {num_items} TIMES {clean_name.upper()} ACTUALLY LOST HIS MIND 😭",
-            f"RANKING THE TOP {num_items} STREAMER MOMENTS OF 2026! 🏆",
-            f"TOP {num_items} UNEXPECTED {clean_name.upper()} MOMENTS YOU MISSED! ⚡"
-        ]
+        main_creator = unique_creators[0]
+        c_upper = main_creator.upper()
+
+        if len(unique_creators) >= 2:
+            second_creator = unique_creators[1].upper()
+            title_templates = [
+                f"TOP {num_items} FUNNIEST {c_upper} & {second_creator} MOMENTS EVER! 💀🔥",
+                f"TOP {num_items} TIMES STREAMERS BROKE THE INTERNET! 😱💀 #Shorts",
+                f"RANKING THE TOP {num_items} MOST UNHINGED STREAM MOMENTS OF 2026! 🏆⚡",
+                f"TOP {num_items} ILLEGAL STREAM CLIPS YOU CANNOT UNSEE! 😭💥",
+                f"TOP {num_items} TIMES STREAMERS FORGOT THEY WERE LIVE ON CAMERA! 💀📸"
+            ]
+            creators_display = ", ".join([f"@{c}" for c in unique_creators])
+        else:
+            title_templates = [
+                f"TOP {num_items} FUNNIEST {c_upper} MOMENTS OF ALL TIME! 💀🔥 #Shorts",
+                f"TOP {num_items} CRAZIEST {c_upper} REACTIONS THAT BROKE THE INTERNET! 😱⚡",
+                f"TOP {num_items} TIMES {c_upper} ACTUALLY LOST HIS MIND ON STREAM 😭",
+                f"RANKING THE TOP {num_items} UNHINGED {c_upper} CLIPS OF 2026! 🏆",
+                f"TOP {num_items} TIMES {c_upper} FORGOT HE WAS LIVE ON CAMERA! 💀"
+            ]
+            creators_display = f"@{main_creator}"
+
         title = title_templates[0]
 
-        tags = ["#Shorts", "#Top5", "#Compilation", "#Viral", "#Trending", "#FunnyMoments", "#Gaming", f"#{clean_name.replace(' ', '')}"]
+        tags = ["#Shorts", f"#Top{num_items}", "#Compilation", "#Viral", "#Trending", "#FunnyMoments", "#Gaming", "#TwitchHighlights", f"#{main_creator.replace(' ', '')}"]
         tags_string = " ".join(tags)
 
-        description = f"""🔥 Top {num_items} countdown compilation of the funniest and most chaotic {clean_name} moments!
-Which moment was your favorite? Let us know in the comments below! 👇
+        # Dynamic chapter breakdown
+        chapters_text = "\n".join([f"• #{num_items - i} Viral Moment — Intensity Peak #{i + 1} 🔥" for i in range(num_items)])
 
-🏆 COUNTDOWN MOMENTS:
-• #5 to #1 Ranked by Viral Energy & Laughter
+        description = f"""🔥 The Ultimate Top {num_items} Countdown compilation of the wildest, funniest, and most chaotic stream moments!
 
-🔔 Subscribe for daily top compilations, stream rage moments, and viral highlights!
+🏆 COUNTDOWN MOMENTS RANKING:
+{chapters_text}
+
+💬 DROP YOUR RATING:
+Which moment was #1 for you? Drop your timestamp and favorite clip in the comments below! 👇
+
+🔔 SUBSCRIBE FOR MORE:
+Subscribe and turn on notifications 🔔 for daily Top 5 compilations, streamer highlights, and viral shorts!
+
+👑 CREATOR CREDITS & ATTRIBUTION:
+• Featured Creators: {creators_display}
+• Content curated from official streams. All rights and credits belong to the original creators.
 
 {tags_string}"""
 
@@ -132,5 +209,5 @@ Which moment was your favorite? Let us know in the comments below! 👇
             "description": description.strip(),
             "tags": tags,
             "tags_string": tags_string,
-            "creator_name": clean_name
+            "creator_name": main_creator
         }

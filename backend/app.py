@@ -687,6 +687,21 @@ async def add_voiceover_to_clip(
         "dubbed_video_url": f"/output/{dubbed_filename}"
     }
 
+@app.post("/api/preview-voice")
+async def preview_voiceover(req: dict):
+    text = req.get("text", "Wait until you see what happens next in this crazy clip!")
+    voice_type = req.get("voice_type", "hype_trailer")
+    voice_studio = VoiceoverStudio(TEMP_DIR)
+    audio_path = await voice_studio.generate_ai_voiceover(text, voice_type)
+    if not audio_path or not os.path.exists(audio_path):
+        raise HTTPException(status_code=400, detail="Failed to synthesize voice preview")
+    
+    import shutil
+    preview_filename = f"preview_{Path(audio_path).name}"
+    preview_dest = OUTPUT_DIR / preview_filename
+    shutil.copy2(audio_path, preview_dest)
+    return {"audio_url": f"/output/{preview_filename}"}
+
 # ==================== YOUTUBE OAUTH & AUTO-PUBLISHING ROUTES ====================
 
 @app.get("/api/youtube/status")

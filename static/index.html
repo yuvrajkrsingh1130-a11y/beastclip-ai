@@ -921,48 +921,77 @@
             </div>
 
             <!-- Voiceover & Commentary Studio Modal / Drawer -->
-            <div id="voiceModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-                <div class="glass-panel max-w-lg w-full p-6 shadow-2xl space-y-5 border-indigo-500/40">
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-lg font-bold font-display text-white flex items-center gap-2">
-                            <i data-lucide="mic" class="w-5 h-5 text-pink-400"></i>
-                            Add Your Voice / Commentary
-                        </h3>
-                        <button id="closeVoiceModalBtn" class="text-gray-400 hover:text-white">
+            <div id="voiceModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+                <div class="glass-panel max-w-lg w-full p-6 shadow-2xl space-y-5 border-purple-500/40">
+                    <div class="flex items-center justify-between border-b border-white/10 pb-4">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-xl bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-400">
+                                <i data-lucide="mic" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-bold font-display text-white">Voiceover & Commentary Studio</h3>
+                                <p class="text-[10px] text-gray-400">Boosts YouTube monetization approval & 100% immune to reused content claims</p>
+                            </div>
+                        </div>
+                        <button id="closeVoiceModalBtn" class="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/5 transition">
                             <i data-lucide="x" class="w-5 h-5"></i>
                         </button>
                     </div>
 
-                    <p class="text-xs text-gray-400">Adding original voiceover makes your Shorts 100% immune to reused content claims and boosts monetization approval!</p>
-
                     <!-- Option 1: AI Text-to-Speech Commentary -->
-                    <div class="space-y-2">
-                        <label class="block text-xs font-semibold text-gray-300">Option A: AI Voiceover (Text to Speech)</label>
-                        <textarea id="ttsCommentaryText" rows="3" placeholder="Type your commentary or hook (e.g. 'Wait until you see what happens next in this crazy play...')"
-                            class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-xs focus:outline-none focus:border-indigo-500"></textarea>
-                        
-                        <div class="flex gap-2">
-                            <select id="ttsVoiceSelect" class="bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white">
-                                <option value="en-US-GuyNeural">Guy (Energetic Male)</option>
-                                <option value="en-US-ChristopherNeural">Christopher (Narrator Male)</option>
-                                <option value="en-US-JennyNeural">Jenny (Engaging Female)</option>
-                                <option value="en-GB-RyanNeural">Ryan (British Hype)</option>
-                            </select>
-                            <button id="applyTtsBtn" class="flex-1 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-xs font-bold text-white transition">
-                                Generate & Mix AI Voice
-                            </button>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <label class="block text-xs font-bold text-purple-300">Option A: Studio AI Voiceover (DSP Mastered)</label>
+                            <span class="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-mono font-bold border border-purple-500/30">BROADCAST 256K</span>
                         </div>
+
+                        <textarea id="ttsCommentaryText" rows="3" placeholder="Type your commentary or viral hook (e.g. 'Wait until you see what he does at the very end...')"
+                            class="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-xs focus:outline-none focus:border-purple-500 text-white placeholder-gray-500"></textarea>
+                        
+                        <div>
+                            <label class="block text-[11px] font-semibold text-gray-300 mb-1">Select Viral Voice Profile</label>
+                            <select id="ttsVoiceSelect" class="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500">
+                                <option value="hype_trailer" selected>🎙️ Movie Trailer Hype Guy (Deep Baritone)</option>
+                                <option value="energetic_streamer">🔥 Energetic Streamer / Storyteller (Fast & Clear)</option>
+                                <option value="tiktok_girl">✨ Viral TikTok Female (Crisp Pop Tone)</option>
+                                <option value="anime_villain">⚡ Deep Anime Villain / Epic Narrator (Sub-Bass)</option>
+                                <option value="british_documentary">🌟 British BBC Narrator (Articulate Hype)</option>
+                                <option value="mrbeast_action">🚀 MrBeast Action Style (High-Speed Loud)</option>
+                                <option value="cyber_ai">🤖 Cyberpunk AI Assistant (Clean Synth)</option>
+                            </select>
+                        </div>
+
+                        <!-- Voice Preview & Player Bar -->
+                        <div class="p-3 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-between gap-3">
+                            <button id="previewVoiceBtn" type="button" class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 text-xs font-bold text-gray-200 transition flex items-center gap-1.5 flex-shrink-0">
+                                <i data-lucide="volume-2" class="w-3.5 h-3.5 text-purple-400"></i>
+                                <span>Preview Audio</span>
+                            </button>
+                            <audio id="voicePreviewAudio" controls class="hidden h-7 flex-1 max-w-[220px]"></audio>
+                            <div id="voiceWaveAnimation" class="hidden flex items-center gap-1 h-5 px-2">
+                                <div class="wave-bar"></div>
+                                <div class="wave-bar"></div>
+                                <div class="wave-bar"></div>
+                                <div class="wave-bar"></div>
+                                <div class="wave-bar"></div>
+                            </div>
+                        </div>
+
+                        <button id="applyTtsBtn" class="w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 rounded-xl text-xs font-bold text-white transition flex items-center justify-center gap-2 shadow-lg shadow-purple-500/20">
+                            <i data-lucide="sparkles" class="w-4 h-4"></i>
+                            Generate & Mix Voiceover to Short
+                        </button>
                     </div>
 
-                    <div class="relative flex py-2 items-center">
+                    <div class="relative flex py-1 items-center">
                         <div class="flex-grow border-t border-white/10"></div>
-                        <span class="flex-shrink mx-4 text-[10px] text-gray-500 uppercase font-semibold">Or Record Mic</span>
+                        <span class="flex-shrink mx-4 text-[10px] text-gray-500 uppercase font-semibold">Or Record Live Mic</span>
                         <div class="flex-grow border-t border-white/10"></div>
                     </div>
 
                     <!-- Option 2: Record Live Mic -->
                     <div class="space-y-3">
-                        <label class="block text-xs font-semibold text-gray-300">Option B: Record Your Own Voice</label>
+                        <label class="block text-xs font-bold text-rose-300">Option B: Record Your Own Microphone</label>
                         <div class="flex items-center gap-3">
                             <button id="recordMicBtn" class="px-4 py-2 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/40 text-rose-300 text-xs font-bold flex items-center gap-2">
                                 <i data-lucide="circle-dot" class="w-4 h-4 text-rose-400"></i>
@@ -970,8 +999,8 @@
                             </button>
                             <audio id="recordedAudioPreview" controls class="hidden h-8 flex-1"></audio>
                         </div>
-                        <button id="applyMicBtn" disabled class="w-full py-2 bg-pink-600 hover:bg-pink-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg text-xs font-bold text-white transition">
-                            Apply Recorded Voiceover to Short
+                        <button id="applyMicBtn" disabled class="w-full py-2.5 bg-pink-600 hover:bg-pink-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl text-xs font-bold text-white transition">
+                            Apply Microphone Voiceover to Short
                         </button>
                     </div>
                 </div>
@@ -987,7 +1016,7 @@
     </footer>
 
     <!-- App Logic Script -->
-    <script src="/static/js/app.js?v=3.1"></script>
+    <script src="/static/js/app.js?v=3.2"></script>
     <script>
         lucide.createIcons();
     </script>
