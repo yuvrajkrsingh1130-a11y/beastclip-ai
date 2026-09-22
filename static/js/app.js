@@ -50,6 +50,15 @@ function initPresets() {
 }
 
 function initEventListeners() {
+    // Mode Switcher Tabs (Single vs Multi-Video Compilation)
+    document.getElementById("modeTabSingle")?.addEventListener("click", () => switchStudioMode("single"));
+    document.getElementById("modeTabMulti")?.addEventListener("click", () => switchStudioMode("multi"));
+
+    // Multi-video dynamic inputs
+    document.getElementById("addMultiUrlBtn")?.addEventListener("click", addMultiUrlInputRow);
+    document.getElementById("generateCompilationBtn")?.addEventListener("click", startMultiVideoCompilation);
+    document.getElementById("stitchCompilationBtn")?.addEventListener("click", stitchGalleryClipsIntoCompilation);
+
     // Fetch info button
     document.getElementById("fetchInfoBtn").addEventListener("click", fetchVideoInfo);
 
@@ -117,6 +126,165 @@ function initEventListeners() {
 
     // Auto Fetch Handle button
     document.getElementById("autoFetchHandleBtn")?.addEventListener("click", autoFetchCreatorHandle);
+}
+
+// ==================== MODE SWITCHING & MULTI-VIDEO COMPILATIONS ====================
+
+let activeStudioMode = "single";
+
+function switchStudioMode(mode) {
+    activeStudioMode = mode;
+    const btnSingle = document.getElementById("modeTabSingle");
+    const btnMulti = document.getElementById("modeTabMulti");
+    const panelSingle = document.getElementById("singleVideoPanel");
+    const panelMulti = document.getElementById("multiVideoPanel");
+    const singleClipSettings = document.getElementById("singleModeClipSettings");
+    const singleGenBox = document.getElementById("singleGenerateBox");
+    const multiGenBox = document.getElementById("multiGenerateBox");
+
+    if (mode === "multi") {
+        btnSingle.className = "py-2.5 px-3 rounded-xl text-xs font-bold text-gray-400 hover:text-white transition flex items-center justify-center gap-2";
+        btnMulti.className = "py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 bg-gradient-to-r from-yellow-500 to-amber-500 text-black font-extrabold shadow-md";
+        
+        panelSingle.classList.add("hidden");
+        panelMulti.classList.remove("hidden");
+        singleClipSettings.classList.add("hidden");
+        singleGenBox.classList.add("hidden");
+        multiGenBox.classList.remove("hidden");
+    } else {
+        btnSingle.className = "py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md";
+        btnMulti.className = "py-2.5 px-3 rounded-xl text-xs font-bold text-gray-400 hover:text-white transition flex items-center justify-center gap-1.5";
+        
+        panelSingle.classList.remove("hidden");
+        panelMulti.classList.add("hidden");
+        singleClipSettings.classList.remove("hidden");
+        singleGenBox.classList.remove("hidden");
+        multiGenBox.classList.add("hidden");
+    }
+}
+
+function addMultiUrlInputRow() {
+    const container = document.getElementById("multiUrlInputsContainer");
+    const rows = container.querySelectorAll(".multi-url-row");
+    if (rows.length >= 5) {
+        showToast("Maximum 5 videos allowed for a Top Compilation");
+        return;
+    }
+
+    const nextIndex = rows.length + 1;
+    const row = document.createElement("div");
+    row.className = "multi-url-row flex items-center gap-2";
+    row.innerHTML = `
+        <span class="text-xs font-bold text-yellow-400 w-14 font-mono">Vid #${nextIndex}:</span>
+        <input type="text" placeholder="https://www.youtube.com/watch?v=..." 
+            class="multi-url-input flex-1 bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-yellow-500">
+        <button type="button" class="p-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/25 text-rose-400 border border-rose-500/30 transition" title="Remove URL" onclick="this.parentElement.remove()">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+        </button>
+    `;
+    container.appendChild(row);
+    lucide.createIcons();
+}
+
+async function startMultiVideoCompilation() {
+    const inputs = document.querySelectorAll(".multi-url-input");
+    const urls = Array.from(inputs).map(i => i.value.trim()).filter(Boolean);
+
+    if (urls.length < 2) {
+        alert("Please enter at least 2 YouTube video URLs to create a compilation!");
+        return;
+    }
+
+    const targetDuration = parseInt(document.getElementById("compilationDurationSelect").value, 10);
+    const countdownStyle = document.getElementById("compilationStyleSelect").value;
+    const layout = document.querySelector('input[name="layout"]:checked')?.value || "split_screen";
+    const subtitleStyle = document.querySelector('input[name="subStyle"]:checked')?.value || "hormozi";
+    const creatorCredit = document.getElementById("creatorCreditInput").value.trim();
+
+    const genBtn = document.getElementById("generateCompilationBtn");
+    genBtn.disabled = true;
+    genBtn.innerHTML = `<div class="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div> Scanning & Compiling Top Moments...`;
+
+    // Show progress card
+    const progressCard = document.getElementById("progressCard");
+    progressCard.classList.remove("hidden");
+    document.getElementById("progressBarFill").style.width = "5%";
+    document.getElementById("progressPercent").innerText = "5%";
+    document.getElementById("progressStatusText").innerHTML = `<span>Starting Multi-Video Countdown Pipeline...</span>`;
+
+    try {
+        const res = await fetch("/api/compilation/create-multi-video", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                urls: urls,
+                target_duration: targetDuration,
+                countdown_style: countdownStyle,
+                subtitle_style: subtitleStyle,
+                layout: layout,
+                creator_credit: creatorCredit || null
+            })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            currentJobId = data.job_id;
+            pollInterval = setInterval(pollJobStatus, 2000);
+        } else {
+            alert(`Compilation error: ${data.detail}`);
+            genBtn.disabled = false;
+            genBtn.innerHTML = `<i data-lucide="trophy" class="w-5 h-5"></i> CREATE TOP COUNTDOWN COMPILATION NOW 🏆`;
+            lucide.createIcons();
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Network error starting compilation pipeline.");
+        genBtn.disabled = false;
+        genBtn.innerHTML = `<i data-lucide="trophy" class="w-5 h-5"></i> CREATE TOP COUNTDOWN COMPILATION NOW 🏆`;
+        lucide.createIcons();
+    }
+}
+
+async function stitchGalleryClipsIntoCompilation() {
+    const clips = Object.values(currentClipsMap);
+    if (clips.length < 2) {
+        alert("You need at least 2 generated clips in the gallery to stitch a compilation!");
+        return;
+    }
+
+    const clipIds = clips.map(c => c.clip_id);
+    const stitchBtn = document.getElementById("stitchCompilationBtn");
+    stitchBtn.disabled = true;
+    stitchBtn.innerHTML = `<div class="w-3.5 h-3.5 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin"></div> Stitching...`;
+
+    try {
+        const res = await fetch("/api/compilation/stitch-gallery-clips", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                clip_ids: clipIds,
+                target_duration: 50,
+                countdown_style: "gold"
+            })
+        });
+
+        const data = await res.json();
+        if (res.ok && data.clip) {
+            showToast("Successfully Created Top Countdown Compilation!");
+            // Prepend compilation to top of gallery
+            const updatedClips = [data.clip, ...clips];
+            renderGeneratedClips(updatedClips);
+        } else {
+            alert(`Stitch error: ${data.detail || 'Failed to stitch clips'}`);
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Failed to stitch gallery clips.");
+    } finally {
+        stitchBtn.disabled = false;
+        stitchBtn.innerHTML = `<i data-lucide="trophy" class="w-4 h-4 text-yellow-400"></i> <span>Stitch All into Top Compilation</span>`;
+        lucide.createIcons();
+    }
 }
 
 // ==================== INGESTION & PIPELINE ====================
@@ -301,6 +469,8 @@ function renderGeneratedClips(clips) {
         emptyPlaceholder.classList.remove("hidden");
         countBadge.classList.add("hidden");
         document.getElementById("dripScheduleAllBtn").classList.add("hidden");
+        const stitchBtn = document.getElementById("stitchCompilationBtn");
+        if (stitchBtn) stitchBtn.classList.add("hidden");
         grid.innerHTML = "";
         return;
     }
@@ -313,18 +483,33 @@ function renderGeneratedClips(clips) {
     countBadge.innerText = `${clips.length} Viral Shorts Ready`;
     countBadge.classList.remove("hidden");
     document.getElementById("dripScheduleAllBtn").classList.remove("hidden");
+    
+    const stitchBtn = document.getElementById("stitchCompilationBtn");
+    if (stitchBtn) {
+        if (clips.length >= 2) {
+            stitchBtn.classList.remove("hidden");
+        } else {
+            stitchBtn.classList.add("hidden");
+        }
+    }
     grid.innerHTML = "";
 
     clips.forEach(clip => {
         const card = document.createElement("div");
         card.className = "glass-panel p-4 shadow-xl space-y-4 border-white/10 flex flex-col";
 
+        const badgeHtml = clip.is_compilation
+            ? `<span class="text-xs px-2.5 py-1 rounded-md bg-gradient-to-r from-yellow-500/30 to-amber-500/30 text-yellow-300 font-extrabold border border-yellow-500/50 flex items-center gap-1">
+                 <i data-lucide="trophy" class="w-3.5 h-3.5 text-yellow-400"></i> TOP COMPILATION SHORT
+               </span>`
+            : `<span class="text-xs px-2.5 py-1 rounded-md bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30">
+                 #${clip.rank} Viral Highlight
+               </span>`;
+
         card.innerHTML = `
             <!-- Top Badges -->
             <div class="flex items-center justify-between">
-                <span class="text-xs px-2.5 py-1 rounded-md bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30">
-                    #${clip.rank} Viral Highlight
-                </span>
+                ${badgeHtml}
                 <div class="flex items-center gap-1.5">
                     <span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold badge-hype">
                         🔥 ${clip.virality_score}% Virality

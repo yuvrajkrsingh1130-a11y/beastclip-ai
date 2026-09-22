@@ -96,3 +96,41 @@ Subscribe and turn on notifications for daily viral streamer highlights, rage mo
             "creator_credit": creator_tag,
             "creator_name": clean_name
         }
+
+    def generate_compilation_metadata(self, creator_names: list, num_items: int = 5) -> dict:
+        """
+        Generates high-CTR compilation title and description for Top N Countdown Shorts.
+        """
+        main_creator = creator_names[0] if creator_names else "Streamer"
+        clean_name = main_creator.lstrip("@").strip()
+
+        title_templates = [
+            f"TOP {num_items} FUNNIEST {clean_name.upper()} MOMENTS OF ALL TIME! 💀 #Shorts",
+            f"TOP {num_items} CRAZIEST {clean_name.upper()} REACTIONS EVER! 😱🔥",
+            f"TOP {num_items} TIMES {clean_name.upper()} ACTUALLY LOST HIS MIND 😭",
+            f"RANKING THE TOP {num_items} STREAMER MOMENTS OF 2026! 🏆",
+            f"TOP {num_items} UNEXPECTED {clean_name.upper()} MOMENTS YOU MISSED! ⚡"
+        ]
+        title = title_templates[0]
+
+        tags = ["#Shorts", "#Top5", "#Compilation", "#Viral", "#Trending", "#FunnyMoments", "#Gaming", f"#{clean_name.replace(' ', '')}"]
+        tags_string = " ".join(tags)
+
+        description = f"""🔥 Top {num_items} countdown compilation of the funniest and most chaotic {clean_name} moments!
+Which moment was your favorite? Let us know in the comments below! 👇
+
+🏆 COUNTDOWN MOMENTS:
+• #5 to #1 Ranked by Viral Energy & Laughter
+
+🔔 Subscribe for daily top compilations, stream rage moments, and viral highlights!
+
+{tags_string}"""
+
+        return {
+            "title": title,
+            "title_suggestions": title_templates,
+            "description": description.strip(),
+            "tags": tags,
+            "tags_string": tags_string,
+            "creator_name": clean_name
+        }

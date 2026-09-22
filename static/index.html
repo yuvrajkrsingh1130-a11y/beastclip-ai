@@ -60,67 +60,146 @@
         
         <!-- Left Column: Input Form & Controls (5 Cols) -->
         <section class="lg:col-span-5 space-y-6">
+
+            <!-- Mode Switcher Tabs (Single Video vs Top 5 Multi-Video Compilation) -->
+            <div class="grid grid-cols-2 p-1.5 rounded-2xl bg-black/40 border border-white/10 shadow-lg">
+                <button id="modeTabSingle" type="button" class="py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md">
+                    <i data-lucide="video" class="w-4 h-4"></i>
+                    <span>Single Video Clipper</span>
+                </button>
+                <button id="modeTabMulti" type="button" class="py-2.5 px-3 rounded-xl text-xs font-bold text-gray-400 hover:text-white transition flex items-center justify-center gap-1.5 relative">
+                    <i data-lucide="trophy" class="w-4 h-4 text-yellow-400"></i>
+                    <span>Top 5 Compilation</span>
+                    <span class="text-[9px] px-1.5 py-0.2 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 font-extrabold animate-pulse">HOT</span>
+                </button>
+            </div>
             
-            <!-- Ingestion Box -->
-            <div class="glass-panel p-6 shadow-xl">
-                <h2 class="text-lg font-bold font-display mb-4 flex items-center gap-2 text-indigo-300">
-                    <i data-lucide="link" class="w-5 h-5"></i>
-                    1. Video Source Link
-                </h2>
-                
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">YouTube Video or Stream URL</label>
-                        <div class="relative">
-                            <input id="videoUrlInput" type="text" placeholder="https://www.youtube.com/watch?v=..." 
-                                class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition pr-24">
-                            <button id="fetchInfoBtn" class="absolute right-2 top-2 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-xs rounded-lg transition font-medium">
-                                Fetch Info
-                            </button>
+            <!-- PANEL 1: Single Video Ingestion Box -->
+            <div id="singleVideoPanel" class="space-y-6">
+                <div class="glass-panel p-6 shadow-xl">
+                    <h2 class="text-lg font-bold font-display mb-4 flex items-center gap-2 text-indigo-300">
+                        <i data-lucide="link" class="w-5 h-5"></i>
+                        1. Video Source Link
+                    </h2>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">YouTube Video or Stream URL</label>
+                            <div class="relative">
+                                <input id="videoUrlInput" type="text" placeholder="https://www.youtube.com/watch?v=..." 
+                                    class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition pr-24">
+                                <button id="fetchInfoBtn" class="absolute right-2 top-2 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-xs rounded-lg transition font-medium">
+                                    Fetch Info
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Creator Quick Presets -->
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Popular Streamer Presets</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button class="preset-btn px-3 py-2 rounded-lg bg-white/5 hover:bg-indigo-600/20 border border-white/5 hover:border-indigo-500/40 text-xs text-left transition flex items-center gap-2" data-preset="ishowspeed">
+                                    <span class="text-lg">⚡</span>
+                                    <div>
+                                        <div class="font-bold text-white">IShowSpeed</div>
+                                        <div class="text-[10px] text-gray-400">Hype & Screams</div>
+                                    </div>
+                                </button>
+                                <button class="preset-btn px-3 py-2 rounded-lg bg-white/5 hover:bg-indigo-600/20 border border-white/5 hover:border-indigo-500/40 text-xs text-left transition flex items-center gap-2" data-preset="kaicenat">
+                                    <span class="text-lg">👑</span>
+                                    <div>
+                                        <div class="font-bold text-white">Kai Cenat</div>
+                                        <div class="text-[10px] text-gray-400">Funny & Chaos</div>
+                                    </div>
+                                </button>
+                                <button class="preset-btn px-3 py-2 rounded-lg bg-white/5 hover:bg-indigo-600/20 border border-white/5 hover:border-indigo-500/40 text-xs text-left transition flex items-center gap-2" data-preset="jynxzi">
+                                    <span class="text-lg">🎮</span>
+                                    <div>
+                                        <div class="font-bold text-white">Jynxzi</div>
+                                        <div class="text-[10px] text-gray-400">Gaming & Rage</div>
+                                    </div>
+                                </button>
+                                <button class="preset-btn px-3 py-2 rounded-lg bg-white/5 hover:bg-indigo-600/20 border border-white/5 hover:border-indigo-500/40 text-xs text-left transition flex items-center gap-2" data-preset="caseoh">
+                                    <span class="text-lg">🍔</span>
+                                    <div>
+                                        <div class="font-bold text-white">CaseOh</div>
+                                        <div class="text-[10px] text-gray-400">Chat Reactions</div>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Video Preview Metadata (Hidden by default) -->
+                        <div id="videoInfoCard" class="hidden p-3 rounded-xl bg-white/5 border border-white/10 flex items-center gap-3">
+                            <img id="videoThumbImg" src="" class="w-20 h-12 object-cover rounded-lg">
+                            <div class="min-w-0 flex-1">
+                                <div id="videoTitleLabel" class="text-xs font-semibold truncate text-white"></div>
+                                <div id="videoMetaLabel" class="text-[10px] text-gray-400"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANEL 2: Multi-Video Top 5 Compilation Panel (Hidden by default) -->
+            <div id="multiVideoPanel" class="hidden space-y-6">
+                <div class="glass-panel p-6 shadow-xl border-yellow-500/30">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-bold font-display flex items-center gap-2 text-yellow-300">
+                            <i data-lucide="trophy" class="w-5 h-5 text-yellow-400"></i>
+                            Top Compilation (Multi-Video)
+                        </h2>
+                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300 font-bold border border-yellow-500/30">
+                            #5 to #1 Countdown
+                        </span>
+                    </div>
+
+                    <p class="text-xs text-gray-300 mb-4">
+                        Paste 2 to 5 YouTube URLs. The AI scans each video, extracts the #1 funniest/craziest climax from each, and stitches them with dynamic <strong class="text-yellow-400">#5 ... #1 countdown badge cards</strong> into a viral 40s/60s compilation Short!
+                    </p>
+
+                    <!-- Multi URLs Input List -->
+                    <div class="space-y-3" id="multiUrlInputsContainer">
+                        <div class="multi-url-row flex items-center gap-2">
+                            <span class="text-xs font-bold text-yellow-400 w-14 font-mono">Vid #1:</span>
+                            <input type="text" placeholder="https://www.youtube.com/watch?v=..." 
+                                class="multi-url-input flex-1 bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-yellow-500">
+                        </div>
+                        <div class="multi-url-row flex items-center gap-2">
+                            <span class="text-xs font-bold text-yellow-400 w-14 font-mono">Vid #2:</span>
+                            <input type="text" placeholder="https://www.youtube.com/watch?v=..." 
+                                class="multi-url-input flex-1 bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-yellow-500">
+                        </div>
+                        <div class="multi-url-row flex items-center gap-2">
+                            <span class="text-xs font-bold text-yellow-400 w-14 font-mono">Vid #3:</span>
+                            <input type="text" placeholder="https://www.youtube.com/watch?v=..." 
+                                class="multi-url-input flex-1 bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-yellow-500">
                         </div>
                     </div>
 
-                    <!-- Creator Quick Presets -->
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Popular Streamer Presets</label>
-                        <div class="grid grid-cols-2 gap-2">
-                            <button class="preset-btn px-3 py-2 rounded-lg bg-white/5 hover:bg-indigo-600/20 border border-white/5 hover:border-indigo-500/40 text-xs text-left transition flex items-center gap-2" data-preset="ishowspeed">
-                                <span class="text-lg">⚡</span>
-                                <div>
-                                    <div class="font-bold text-white">IShowSpeed</div>
-                                    <div class="text-[10px] text-gray-400">Hype & Screams</div>
-                                </div>
-                            </button>
-                            <button class="preset-btn px-3 py-2 rounded-lg bg-white/5 hover:bg-indigo-600/20 border border-white/5 hover:border-indigo-500/40 text-xs text-left transition flex items-center gap-2" data-preset="kaicenat">
-                                <span class="text-lg">👑</span>
-                                <div>
-                                    <div class="font-bold text-white">Kai Cenat</div>
-                                    <div class="text-[10px] text-gray-400">Funny & Chaos</div>
-                                </div>
-                            </button>
-                            <button class="preset-btn px-3 py-2 rounded-lg bg-white/5 hover:bg-indigo-600/20 border border-white/5 hover:border-indigo-500/40 text-xs text-left transition flex items-center gap-2" data-preset="jynxzi">
-                                <span class="text-lg">🎮</span>
-                                <div>
-                                    <div class="font-bold text-white">Jynxzi</div>
-                                    <div class="text-[10px] text-gray-400">Gaming & Rage</div>
-                                </div>
-                            </button>
-                            <button class="preset-btn px-3 py-2 rounded-lg bg-white/5 hover:bg-indigo-600/20 border border-white/5 hover:border-indigo-500/40 text-xs text-left transition flex items-center gap-2" data-preset="caseoh">
-                                <span class="text-lg">🍔</span>
-                                <div>
-                                    <div class="font-bold text-white">CaseOh</div>
-                                    <div class="text-[10px] text-gray-400">Chat Reactions</div>
-                                </div>
-                            </button>
-                        </div>
-                    </div>
+                    <button id="addMultiUrlBtn" type="button" class="mt-3 w-full py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-bold text-gray-300 hover:text-white transition flex items-center justify-center gap-1.5">
+                        <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-yellow-400"></i>
+                        <span>Add Another Video URL (Up to 5)</span>
+                    </button>
 
-                    <!-- Video Preview Metadata (Hidden by default) -->
-                    <div id="videoInfoCard" class="hidden p-3 rounded-xl bg-white/5 border border-white/10 flex items-center gap-3">
-                        <img id="videoThumbImg" src="" class="w-20 h-12 object-cover rounded-lg">
-                        <div class="min-w-0 flex-1">
-                            <div id="videoTitleLabel" class="text-xs font-semibold truncate text-white"></div>
-                            <div id="videoMetaLabel" class="text-[10px] text-gray-400"></div>
+                    <!-- Compilation Style & Duration Settings -->
+                    <div class="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-white/10">
+                        <div>
+                            <label class="block text-[11px] font-semibold text-gray-300 mb-1">Total Target Length</label>
+                            <select id="compilationDurationSelect" class="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-yellow-500">
+                                <option value="40">40 Seconds (Fast Paced)</option>
+                                <option value="50" selected>50 Seconds (Recommended)</option>
+                                <option value="60">60 Seconds (Full 1-Min Short)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-gray-300 mb-1">Countdown Badge Style</label>
+                            <select id="compilationStyleSelect" class="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-yellow-500">
+                                <option value="gold" selected>🏆 Gold Sparkle (#5..#1)</option>
+                                <option value="fire">🔥 Fire Rage / Red</option>
+                                <option value="cyber">⚡ Cyberpunk Cyan/Pink</option>
+                                <option value="beast">💎 MrBeast Action Green</option>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -236,8 +315,8 @@
                     </div>
                 </div>
 
-                <!-- Clip Length & Count Controls -->
-                <div class="grid grid-cols-2 gap-4">
+                <!-- Clip Length & Count Controls (For Single Video Mode) -->
+                <div id="singleModeClipSettings" class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Clip Length</label>
                         <select id="clipDurationSelect" class="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500">
@@ -295,11 +374,20 @@
                     </label>
                 </div>
 
-                <!-- Generate Button -->
-                <button id="generateBtn" class="w-full py-4 rounded-xl glow-btn text-white font-bold text-sm flex items-center justify-center gap-2">
-                    <i data-lucide="zap" class="w-5 h-5"></i>
-                    GENERATE VIRAL SHORTS NOW
-                </button>
+                <!-- Generate Buttons (Switched depending on active tab) -->
+                <div id="singleGenerateBox">
+                    <button id="generateBtn" class="w-full py-4 rounded-xl glow-btn text-white font-bold text-sm flex items-center justify-center gap-2">
+                        <i data-lucide="zap" class="w-5 h-5"></i>
+                        GENERATE VIRAL SHORTS NOW
+                    </button>
+                </div>
+
+                <div id="multiGenerateBox" class="hidden">
+                    <button id="generateCompilationBtn" class="w-full py-4 rounded-xl bg-gradient-to-r from-yellow-500 via-amber-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-black font-extrabold text-sm flex items-center justify-center gap-2 shadow-xl shadow-yellow-500/25 transition">
+                        <i data-lucide="trophy" class="w-5 h-5"></i>
+                        CREATE TOP COUNTDOWN COMPILATION NOW 🏆
+                    </button>
+                </div>
             </div>
         </section>
 
@@ -336,12 +424,16 @@
                     </h2>
                     <p class="text-xs text-gray-400">High-retention 9:16 vertical clips ready for YouTube Shorts, TikTok & Reels</p>
                 </div>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button id="stitchCompilationBtn" class="hidden px-3 py-1.5 rounded-lg bg-yellow-500/20 hover:bg-yellow-500/35 border border-yellow-500/40 text-yellow-300 text-xs font-bold flex items-center gap-1.5 transition shadow-sm">
+                        <i data-lucide="trophy" class="w-4 h-4 text-yellow-400"></i>
+                        <span>Stitch All into Top Compilation</span>
+                    </button>
                     <button id="dripScheduleAllBtn" class="hidden px-3 py-1.5 rounded-lg bg-red-600/30 hover:bg-red-600/50 border border-red-500/40 text-red-300 text-xs font-bold flex items-center gap-1.5 transition">
                         <i data-lucide="calendar-clock" class="w-4 h-4 text-red-400"></i>
-                        <span>Auto-Schedule All (Anti-Spam)</span>
+                        <span>Auto-Schedule All</span>
                     </button>
-                    <div id="clipsCountBadge" class="hidden text-xs px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                    <div id="clipsCountBadge" class="hidden text-xs px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-semibold">
                         0 Clips
                     </div>
                 </div>
@@ -859,7 +951,7 @@
     </footer>
 
     <!-- App Logic Script -->
-    <script src="/static/js/app.js?v=2.9"></script>
+    <script src="/static/js/app.js?v=3.0"></script>
     <script>
         lucide.createIcons();
     </script>
