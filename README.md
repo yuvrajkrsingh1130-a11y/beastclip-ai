@@ -47,50 +47,34 @@ No watermarks, no monthly subscription fees, and no clip limits — runs complet
 
 ---
 
-## 🚀 Quick Start & Installation
+## 🚀 Super Simple 3-Step Setup (For Windows)
 
-### Prerequisites:
-1. **Python 3.10 or 3.11** ([Download Python](https://www.python.org/downloads/)) — *Be sure to check "Add Python to PATH" during install.*
-2. **FFmpeg** ([Download FFmpeg](https://ffmpeg.org/download.html)) — *Or install on Windows via `winget install Gyan.FFmpeg`.*
-
----
-
-### 1-Click Setup (Windows):
-
-1. **Clone or Download this repository**:
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/beastclip-ai.git
-   cd beastclip-ai
-   ```
-
-2. **Run the 1-Click Installer**:
-   - Double-click **`setup.bat`** (or run `pip install -r requirements.txt`).
-
-3. **Launch BeastClip AI Studio**:
-   - Double-click **`Start_BeastClip_AI.bat`** (or run `python -m uvicorn backend.app:app --host 127.0.0.1 --port 8000`).
-
-4. **Open in your browser**:
-   - Open [http://localhost:8000](http://localhost:8000)
+### 📥 Step 1: Download the App
+- **Option A (Easiest)**: Click the green **Code** button at the top of this page and click **[Download ZIP](https://github.com/yuvrajkrsingh1130-a11y/beastclip-ai/archive/refs/heads/main.zip)**, then extract the ZIP folder.
+- **Option B (Git)**:
+  ```bash
+  git clone https://github.com/yuvrajkrsingh1130-a11y/beastclip-ai.git
+  cd beastclip-ai
+  ```
 
 ---
 
-## 🛠️ Manual CLI Setup (Linux / macOS / Windows)
+### ⚙️ Step 2: Run the 1-Click Installer
+- Open the extracted folder and double-click **`setup.bat`**.
+- It will automatically install Python libraries and verify FFmpeg.
 
-```bash
-# 1. Clone repository
-git clone https://github.com/YOUR_USERNAME/beastclip-ai.git
-cd beastclip-ai
+---
 
-# 2. Create virtual environment
-python -m venv venv
-source venv/bin/activate   # On Windows: venv\Scripts\activate
+### 🎬 Step 3: Start BeastClip AI Studio
+- Double-click **`Start_BeastClip_AI.bat`**.
+- The studio will automatically open in your browser at **[http://localhost:8000](http://localhost:8000)**!
 
-# 3. Install requirements
-pip install -r requirements.txt
+---
 
-# 4. Start the studio
-python -m uvicorn backend.app:app --host 127.0.0.1 --port 8000 --reload
-```
+> [!TIP]
+> **Need Python or FFmpeg?**
+> - **Python 3.10+**: Download from [python.org](https://www.python.org/downloads/) *(Remember to check "Add Python to PATH")*.
+> - **FFmpeg**: Can be installed in Windows Terminal via: `winget install Gyan.FFmpeg`.
 
 ---
 

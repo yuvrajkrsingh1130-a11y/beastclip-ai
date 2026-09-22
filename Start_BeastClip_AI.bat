@@ -5,7 +5,25 @@ echo ===================================================
 echo           STARTING BEASTCLIP AI STUDIO
 echo ===================================================
 echo.
-cd /d "C:\Users\yuvra\.gemini\antigravity\scratch\beastclip-ai"
+cd /d "%~dp0"
+
+:: Check if Python is installed
+python --version >nul 2>&1
+if %errorlevel% neq 0 (
+    echo [ERROR] Python is not installed or not in PATH!
+    echo Please install Python 3.10 or 3.11 from https://www.python.org/downloads/
+    echo (Make sure to check "Add Python to PATH" during installation)
+    pause
+    exit /b 1
+)
+
+:: Check if packages are installed (fast check for uvicorn & fastapi)
+python -c "import uvicorn, fastapi, faster_whisper, yt_dlp" >nul 2>&1
+if %errorlevel% neq 0 (
+    echo [*] First time setup detected! Installing required dependencies...
+    echo This only happens once. Please wait 1-2 minutes...
+    python -m pip install -r requirements.txt
+)
 
 :: Check if server is already running on port 8000
 netstat -ano | findstr :8000 >nul 2>&1
@@ -17,7 +35,7 @@ if %errorlevel% equ 0 (
     timeout /t 3 /nobreak >nul
 )
 
-:: Check if Cloudflare Tunnel is running
+:: Check if Cloudflare Tunnel is running (optional)
 tasklist /fi "imagename eq cloudflared.exe" | findstr cloudflared.exe >nul 2>&1
 if %errorlevel% neq 0 (
     if exist "temp\cloudflared.exe" (
