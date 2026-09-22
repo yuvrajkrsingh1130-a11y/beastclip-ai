@@ -159,28 +159,64 @@
                     </p>
 
                     <!-- Multi URLs Input List -->
-                    <div class="space-y-3" id="multiUrlInputsContainer">
-                        <div class="multi-url-row flex items-center gap-2">
-                            <span class="text-xs font-bold text-yellow-400 w-14 font-mono">Vid #1:</span>
-                            <input type="text" placeholder="https://www.youtube.com/watch?v=..." 
-                                class="multi-url-input flex-1 bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-yellow-500">
+                    <div class="space-y-2.5" id="multiUrlInputsContainer">
+                        <div class="multi-url-row space-y-1 p-2 rounded-xl bg-white/[0.03] border border-white/5">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-bold text-yellow-400 w-12 font-mono flex-shrink-0">Vid #1:</span>
+                                <input type="text" placeholder="https://www.youtube.com/watch?v=..." 
+                                    class="multi-url-input flex-1 bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-yellow-500">
+                                <button type="button" class="fetch-row-handle-btn p-2 rounded-lg bg-yellow-500/10 hover:bg-yellow-500/25 text-yellow-400 border border-yellow-500/30 transition flex-shrink-0" title="Auto-detect handle for Vid #1">
+                                    <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
+                            <div class="row-creator-chip hidden flex items-center gap-1.5 text-[10px] pl-14">
+                                <span class="text-yellow-300 font-semibold font-mono channel-tag">@Creator</span>
+                                <span class="text-gray-500">•</span>
+                                <span class="video-title-snip truncate max-w-[240px] text-gray-400">Title</span>
+                            </div>
                         </div>
-                        <div class="multi-url-row flex items-center gap-2">
-                            <span class="text-xs font-bold text-yellow-400 w-14 font-mono">Vid #2:</span>
-                            <input type="text" placeholder="https://www.youtube.com/watch?v=..." 
-                                class="multi-url-input flex-1 bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-yellow-500">
+                        <div class="multi-url-row space-y-1 p-2 rounded-xl bg-white/[0.03] border border-white/5">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-bold text-yellow-400 w-12 font-mono flex-shrink-0">Vid #2:</span>
+                                <input type="text" placeholder="https://www.youtube.com/watch?v=..." 
+                                    class="multi-url-input flex-1 bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-yellow-500">
+                                <button type="button" class="fetch-row-handle-btn p-2 rounded-lg bg-yellow-500/10 hover:bg-yellow-500/25 text-yellow-400 border border-yellow-500/30 transition flex-shrink-0" title="Auto-detect handle for Vid #2">
+                                    <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
+                            <div class="row-creator-chip hidden flex items-center gap-1.5 text-[10px] pl-14">
+                                <span class="text-yellow-300 font-semibold font-mono channel-tag">@Creator</span>
+                                <span class="text-gray-500">•</span>
+                                <span class="video-title-snip truncate max-w-[240px] text-gray-400">Title</span>
+                            </div>
                         </div>
-                        <div class="multi-url-row flex items-center gap-2">
-                            <span class="text-xs font-bold text-yellow-400 w-14 font-mono">Vid #3:</span>
-                            <input type="text" placeholder="https://www.youtube.com/watch?v=..." 
-                                class="multi-url-input flex-1 bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-yellow-500">
+                        <div class="multi-url-row space-y-1 p-2 rounded-xl bg-white/[0.03] border border-white/5">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-bold text-yellow-400 w-12 font-mono flex-shrink-0">Vid #3:</span>
+                                <input type="text" placeholder="https://www.youtube.com/watch?v=..." 
+                                    class="multi-url-input flex-1 bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-yellow-500">
+                                <button type="button" class="fetch-row-handle-btn p-2 rounded-lg bg-yellow-500/10 hover:bg-yellow-500/25 text-yellow-400 border border-yellow-500/30 transition flex-shrink-0" title="Auto-detect handle for Vid #3">
+                                    <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
+                            <div class="row-creator-chip hidden flex items-center gap-1.5 text-[10px] pl-14">
+                                <span class="text-yellow-300 font-semibold font-mono channel-tag">@Creator</span>
+                                <span class="text-gray-500">•</span>
+                                <span class="video-title-snip truncate max-w-[240px] text-gray-400">Title</span>
+                            </div>
                         </div>
                     </div>
 
-                    <button id="addMultiUrlBtn" type="button" class="mt-3 w-full py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-bold text-gray-300 hover:text-white transition flex items-center justify-center gap-1.5">
-                        <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-yellow-400"></i>
-                        <span>Add Another Video URL (Up to 5)</span>
-                    </button>
+                    <div class="grid grid-cols-2 gap-2 mt-3">
+                        <button id="addMultiUrlBtn" type="button" class="py-2.5 px-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-bold text-gray-300 hover:text-white transition flex items-center justify-center gap-1.5">
+                            <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-yellow-400"></i>
+                            <span>Add Video (Up to 5)</span>
+                        </button>
+                        <button id="fetchMultiHandlesBtn" type="button" class="py-2.5 px-3 bg-yellow-500/20 hover:bg-yellow-500/35 border border-yellow-500/40 rounded-xl text-xs font-bold text-yellow-300 hover:text-yellow-200 transition flex items-center justify-center gap-1.5 shadow-sm">
+                            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-yellow-400"></i>
+                            <span>Auto-Fetch All Handles</span>
+                        </button>
+                    </div>
 
                     <!-- Compilation Style & Duration Settings -->
                     <div class="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-white/10">
@@ -951,7 +987,7 @@
     </footer>
 
     <!-- App Logic Script -->
-    <script src="/static/js/app.js?v=3.0"></script>
+    <script src="/static/js/app.js?v=3.1"></script>
     <script>
         lucide.createIcons();
     </script>

@@ -5,6 +5,7 @@ import asyncio
 import json
 import traceback
 import subprocess
+import concurrent.futures
 from pathlib import Path
 from typing import Optional, List
 
@@ -116,6 +117,28 @@ def extract_video_info(req: dict):
     downloader = YouTubeDownloader(TEMP_DIR)
     info = downloader.extract_info(url)
     return info
+
+@app.post("/api/extract-multi-info")
+def extract_multi_video_info(req: dict):
+    urls = req.get("urls", [])
+    if not urls:
+        raise HTTPException(status_code=400, detail="Missing URLs")
+    downloader = YouTubeDownloader(TEMP_DIR)
+    
+    results = {}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(urls), 5)) as executor:
+        future_to_url = {executor.submit(downloader.extract_info, u): u for u in urls if u and u.strip()}
+        for future in concurrent.futures.as_completed(future_to_url):
+            u = future_to_url[future]
+            try:
+                info = future.result()
+                results[u] = info
+            except Exception as e:
+                results[u] = {"url": u, "title": "Unknown", "uploader": "Creator", "error": str(e)}
+    
+    # Return results in same order as requested urls
+    ordered_results = [results.get(u, {"url": u, "title": "Unknown", "uploader": "Creator"}) for u in urls if u and u.strip()]
+    return {"results": ordered_results}
 
 def process_single_clip_task(
     clip_tuple,

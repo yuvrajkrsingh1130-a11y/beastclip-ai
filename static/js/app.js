@@ -56,8 +56,18 @@ function initEventListeners() {
 
     // Multi-video dynamic inputs
     document.getElementById("addMultiUrlBtn")?.addEventListener("click", addMultiUrlInputRow);
+    document.getElementById("fetchMultiHandlesBtn")?.addEventListener("click", fetchMultiVideoHandles);
     document.getElementById("generateCompilationBtn")?.addEventListener("click", startMultiVideoCompilation);
     document.getElementById("stitchCompilationBtn")?.addEventListener("click", stitchGalleryClipsIntoCompilation);
+
+    // Multi-video container per-row handle buttons
+    document.getElementById("multiUrlInputsContainer")?.addEventListener("click", (e) => {
+        const fetchBtn = e.target.closest(".fetch-row-handle-btn");
+        if (fetchBtn) {
+            const row = fetchBtn.closest(".multi-url-row");
+            if (row) fetchSingleRowHandle(row, fetchBtn);
+        }
+    });
 
     // Fetch info button
     document.getElementById("fetchInfoBtn").addEventListener("click", fetchVideoInfo);
@@ -173,17 +183,180 @@ function addMultiUrlInputRow() {
 
     const nextIndex = rows.length + 1;
     const row = document.createElement("div");
-    row.className = "multi-url-row flex items-center gap-2";
+    row.className = "multi-url-row space-y-1 p-2 rounded-xl bg-white/[0.03] border border-white/5";
     row.innerHTML = `
-        <span class="text-xs font-bold text-yellow-400 w-14 font-mono">Vid #${nextIndex}:</span>
-        <input type="text" placeholder="https://www.youtube.com/watch?v=..." 
-            class="multi-url-input flex-1 bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-yellow-500">
-        <button type="button" class="p-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/25 text-rose-400 border border-rose-500/30 transition" title="Remove URL" onclick="this.parentElement.remove()">
-            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-        </button>
+        <div class="flex items-center gap-2">
+            <span class="text-xs font-bold text-yellow-400 w-12 font-mono flex-shrink-0">Vid #${nextIndex}:</span>
+            <input type="text" placeholder="https://www.youtube.com/watch?v=..." 
+                class="multi-url-input flex-1 bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-yellow-500">
+            <button type="button" class="fetch-row-handle-btn p-2 rounded-lg bg-yellow-500/10 hover:bg-yellow-500/25 text-yellow-400 border border-yellow-500/30 transition flex-shrink-0" title="Auto-detect handle for Vid #${nextIndex}">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+            </button>
+            <button type="button" class="p-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/25 text-rose-400 border border-rose-500/30 transition flex-shrink-0" title="Remove URL" onclick="removeMultiUrlRow(this)">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+        </div>
+        <div class="row-creator-chip hidden flex items-center gap-1.5 text-[10px] pl-14">
+            <span class="text-yellow-300 font-semibold font-mono channel-tag">@Creator</span>
+            <span class="text-gray-500">•</span>
+            <span class="video-title-snip truncate max-w-[240px] text-gray-400">Title</span>
+        </div>
     `;
     container.appendChild(row);
     lucide.createIcons();
+}
+
+function removeMultiUrlRow(btn) {
+    const row = btn.closest(".multi-url-row");
+    if (row) {
+        row.remove();
+        const rows = document.querySelectorAll("#multiUrlInputsContainer .multi-url-row");
+        rows.forEach((r, idx) => {
+            const label = r.querySelector("span.font-mono");
+            if (label) label.innerText = `Vid #${idx + 1}:`;
+        });
+        syncMultiHandlesToCreditInput();
+    }
+}
+
+async function fetchSingleRowHandle(rowEl, btnEl) {
+    const input = rowEl.querySelector(".multi-url-input");
+    const url = input?.value.trim();
+    if (!url) {
+        showToast("Please enter a YouTube URL in this field first!");
+        return;
+    }
+
+    if (btnEl) {
+        btnEl.disabled = true;
+        btnEl.innerHTML = `<div class="w-3 h-3 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin"></div>`;
+    }
+
+    try {
+        const res = await fetch("/api/extract-info", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url })
+        });
+        const data = await res.json();
+        if (res.ok && data.uploader) {
+            const handle = `@${data.uploader.replace(/\s+/g, '')}`;
+            const chip = rowEl.querySelector(".row-creator-chip");
+            if (chip) {
+                chip.querySelector(".channel-tag").innerText = handle;
+                chip.querySelector(".video-title-snip").innerText = data.title || "Highlight";
+                chip.classList.remove("hidden");
+            }
+            syncMultiHandlesToCreditInput();
+            showToast(`Detected: ${handle}`);
+        } else {
+            showToast("Could not detect creator handle");
+        }
+    } catch (e) {
+        console.error("fetchSingleRowHandle error:", e);
+        showToast("Error detecting handle");
+    } finally {
+        if (btnEl) {
+            btnEl.disabled = false;
+            btnEl.innerHTML = `<i data-lucide="sparkles" class="w-3.5 h-3.5"></i>`;
+            lucide.createIcons();
+        }
+    }
+}
+
+async function fetchMultiVideoHandles() {
+    const container = document.getElementById("multiUrlInputsContainer");
+    const rows = container.querySelectorAll(".multi-url-row");
+    const urls = [];
+    const validRows = [];
+
+    rows.forEach(r => {
+        const url = r.querySelector(".multi-url-input")?.value.trim();
+        if (url) {
+            urls.push(url);
+            validRows.push(r);
+        }
+    });
+
+    if (urls.length === 0) {
+        showToast("Please enter at least 1 YouTube video URL first!");
+        return;
+    }
+
+    const fetchBtn = document.getElementById("fetchMultiHandlesBtn");
+    const autoCreditBtn = document.getElementById("autoFetchHandleBtn");
+    
+    if (fetchBtn) {
+        fetchBtn.disabled = true;
+        fetchBtn.innerHTML = `<div class="w-3 h-3 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin"></div> Fetching ${urls.length} Handles...`;
+    }
+    if (autoCreditBtn) {
+        autoCreditBtn.disabled = true;
+        autoCreditBtn.innerHTML = `<div class="w-3 h-3 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin"></div> Fetching...`;
+    }
+
+    try {
+        const res = await fetch("/api/extract-multi-info", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ urls })
+        });
+        const data = await res.json();
+        
+        if (res.ok && data.results) {
+            const handles = [];
+            data.results.forEach((info, idx) => {
+                const row = validRows[idx];
+                if (row && info.uploader) {
+                    const handle = `@${info.uploader.replace(/\s+/g, '')}`;
+                    handles.push(handle);
+                    const chip = row.querySelector(".row-creator-chip");
+                    if (chip) {
+                        chip.querySelector(".channel-tag").innerText = handle;
+                        chip.querySelector(".video-title-snip").innerText = info.title || "Highlight";
+                        chip.classList.remove("hidden");
+                    }
+                }
+            });
+
+            // Combine unique handles
+            const uniqueHandles = [...new Set(handles)];
+            if (uniqueHandles.length > 0) {
+                document.getElementById("creatorCreditInput").value = uniqueHandles.join(" ");
+                showToast(`Auto-fetched ${uniqueHandles.length} creator handles!`);
+            } else {
+                showToast("Could not detect handles");
+            }
+        } else {
+            showToast("Failed to fetch creator info");
+        }
+    } catch (e) {
+        console.error("fetchMultiVideoHandles error:", e);
+        showToast("Network error fetching creator handles");
+    } finally {
+        if (fetchBtn) {
+            fetchBtn.disabled = false;
+            fetchBtn.innerHTML = `<i data-lucide="sparkles" class="w-3.5 h-3.5 text-yellow-400"></i> Auto-Fetch All Handles`;
+        }
+        if (autoCreditBtn) {
+            autoCreditBtn.disabled = false;
+            autoCreditBtn.innerHTML = `<i data-lucide="sparkles" class="w-3.5 h-3.5 text-indigo-400"></i> Auto Fetch Handle`;
+        }
+        lucide.createIcons();
+    }
+}
+
+function syncMultiHandlesToCreditInput() {
+    const chips = document.querySelectorAll("#multiUrlInputsContainer .row-creator-chip:not(.hidden) .channel-tag");
+    const handles = [];
+    chips.forEach(c => {
+        const text = c.innerText.trim();
+        if (text && text.startsWith("@")) handles.push(text);
+    });
+    const unique = [...new Set(handles)];
+    if (unique.length > 0) {
+        document.getElementById("creatorCreditInput").value = unique.join(" ");
+    }
 }
 
 async function startMultiVideoCompilation() {
@@ -290,6 +463,11 @@ async function stitchGalleryClipsIntoCompilation() {
 // ==================== INGESTION & PIPELINE ====================
 
 async function autoFetchCreatorHandle() {
+    if (currentStudioMode === "multi") {
+        await fetchMultiVideoHandles();
+        return;
+    }
+
     const url = document.getElementById("videoUrlInput").value.trim();
     if (!url) {
         showToast("Please enter a YouTube video URL first!");
