@@ -73,6 +73,8 @@ class ProcessRequest(BaseModel):
 
 class MultiVideoCompilationRequest(BaseModel):
     urls: List[str]                  # 2 to 5 YouTube URLs
+    ranking_header: Optional[str] = "Ranking Best Fails of The Week"
+    clip_labels: Optional[List[str]] = None
     target_duration: int = 50        # 40, 50, 60 seconds
     countdown_style: str = "gold"    # gold, cyber, fire, beast
     subtitle_style: str = "hormozi"
@@ -394,6 +396,7 @@ def run_multi_video_compilation_pipeline(job_id: str, req: MultiVideoCompilation
         per_clip_dur = max(6.0, round(req.target_duration / num_videos, 1))
         extracted_moments = []
         creator_names = []
+        clip_labels_dict = {}
 
         for idx, url in enumerate(urls):
             current_pct = 10 + int((idx / num_videos) * 60)
@@ -441,34 +444,24 @@ def run_multi_video_compilation_pipeline(job_id: str, req: MultiVideoCompilation
                     else:
                         r_start = 0.0
 
-                    # Render 9:16 layout & subtitles for this moment
-                    ass_path = TEMP_DIR / f"{part_id}.ass"
-                    sub_generator.create_ass_subtitles(
-                        best_moment.get("words", []),
-                        str(ass_path),
-                        creator_credit=req.creator_credit or f"@{info.get('uploader', 'Creator').replace(' ', '')}",
-                        clip_duration=best_moment["duration"]
-                    )
-                    cam_box = face_tracker.detect_streamer_webcam_box(snipped_file, sample_time=r_start + 1.0)
-                    rendered_part = TEMP_DIR / f"{part_id}_916.mp4"
-
-                    renderer.render_clip(
-                        source_video_path=snipped_file,
-                        start_time=r_start,
-                        duration=best_moment["duration"],
-                        ass_subtitle_path=str(ass_path),
-                        output_clip_path=str(rendered_part),
-                        cam_box=cam_box,
-                        layout=req.layout,
-                        creator_credit=req.creator_credit or f"@{info.get('uploader', 'Creator').replace(' ', '')}",
-                        enable_seamless_loop=False
-                    )
-
                     rank_number = num_videos - idx # e.g. 5, 4, 3, 2, 1
+                    
+                    # Determine clip label
+                    user_label = ""
+                    if req.clip_labels and idx < len(req.clip_labels):
+                        user_label = req.clip_labels[idx].strip()
+                    if not user_label:
+                        clean_words = re.sub(r'[^a-zA-Z0-9\s]', '', info.get('title', 'Viral Moment')).split()
+                        user_label = " ".join(clean_words[:3]).lower() if clean_words else f"Moment #{rank_number}"
+                    
+                    clip_labels_dict[rank_number] = user_label
+
                     extracted_moments.append({
-                        "video_path": str(rendered_part),
+                        "video_path": str(snipped_file),
+                        "start_time": r_start,
                         "duration": best_moment["duration"],
                         "rank": rank_number,
+                        "words": best_moment.get("words", []),
                         "creator_name": info.get("uploader", "")
                     })
 
@@ -478,9 +471,9 @@ def run_multi_video_compilation_pipeline(job_id: str, req: MultiVideoCompilation
         if not extracted_moments:
             raise RuntimeError("Could not extract any highlight moments from the provided videos")
 
-        # Step 2: Stitch all moments with dynamic countdown badges
+        # Step 2: Stitch all moments with dynamic ranking ladder leaderboard
         JOBS[job_id]["progress"] = 75
-        JOBS[job_id]["message"] = f"Stitching Top {len(extracted_moments)} Countdown Compilation with transitions..."
+        JOBS[job_id]["message"] = f"Rendering Ranking Leaderboard Short ({len(extracted_moments)} moments)..."
 
         comp_filename = f"{job_id}_compilation.mp4"
         comp_output_path = OUTPUT_DIR / comp_filename
@@ -488,6 +481,8 @@ def run_multi_video_compilation_pipeline(job_id: str, req: MultiVideoCompilation
         compilation_builder.build_compilation(
             clip_segments=extracted_moments,
             output_path=str(comp_output_path),
+            ranking_header=req.ranking_header or "Ranking Best Fails of The Week",
+            clip_labels=clip_labels_dict,
             total_target_duration=req.target_duration,
             countdown_style=req.countdown_style
         )

@@ -186,7 +186,7 @@ function addMultiUrlInputRow() {
 
     const nextIndex = rows.length + 1;
     const row = document.createElement("div");
-    row.className = "multi-url-row space-y-1 p-2 rounded-xl bg-white/[0.03] border border-white/5";
+    row.className = "multi-url-row space-y-1.5 p-2.5 rounded-xl bg-white/[0.03] border border-white/5";
     row.innerHTML = `
         <div class="flex items-center gap-2">
             <span class="text-xs font-bold text-yellow-400 w-12 font-mono flex-shrink-0">Vid #${nextIndex}:</span>
@@ -198,6 +198,10 @@ function addMultiUrlInputRow() {
             <button type="button" class="p-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/25 text-rose-400 border border-rose-500/30 transition flex-shrink-0" title="Remove URL" onclick="removeMultiUrlRow(this)">
                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
             </button>
+        </div>
+        <div class="flex items-center gap-2 pl-14">
+            <input type="text" placeholder="Ladder Label: e.g. moment #${nextIndex} 🔥"
+                class="multi-clip-label flex-1 bg-black/30 border border-white/5 rounded-lg px-2.5 py-1.5 text-[11px] text-gray-200 focus:outline-none focus:border-yellow-500">
         </div>
         <div class="row-creator-chip hidden flex items-center gap-1.5 text-[10px] pl-14">
             <span class="text-yellow-300 font-semibold font-mono channel-tag">@Creator</span>
@@ -250,6 +254,14 @@ async function fetchSingleRowHandle(rowEl, btnEl) {
                 chip.querySelector(".video-title-snip").innerText = data.title || "Highlight";
                 chip.classList.remove("hidden");
             }
+            
+            // Auto fill ladder label if empty
+            const labelInput = rowEl.querySelector(".multi-clip-label");
+            if (labelInput && !labelInput.value.trim()) {
+                const words = (data.title || "").replace(/[^a-zA-Z0-9\s]/g, '').split(/\s+/).filter(Boolean);
+                labelInput.value = words.slice(0, 3).join(" ").toLowerCase() || "insane moment 🔥";
+            }
+
             syncMultiHandlesToCreditInput();
             showToast(`Detected: ${handle}`);
         } else {
@@ -319,6 +331,12 @@ async function fetchMultiVideoHandles() {
                         chip.querySelector(".video-title-snip").innerText = info.title || "Highlight";
                         chip.classList.remove("hidden");
                     }
+                    // Auto fill label
+                    const labelInput = row.querySelector(".multi-clip-label");
+                    if (labelInput && !labelInput.value.trim()) {
+                        const words = (info.title || "").replace(/[^a-zA-Z0-9\s]/g, '').split(/\s+/).filter(Boolean);
+                        labelInput.value = words.slice(0, 3).join(" ").toLowerCase() || "viral moment 🔥";
+                    }
                 }
             });
 
@@ -326,7 +344,7 @@ async function fetchMultiVideoHandles() {
             const uniqueHandles = [...new Set(handles)];
             if (uniqueHandles.length > 0) {
                 document.getElementById("creatorCreditInput").value = uniqueHandles.join(" ");
-                showToast(`Auto-fetched ${uniqueHandles.length} creator handles!`);
+                showToast(`Auto-fetched ${uniqueHandles.length} creator handles & tags!`);
             } else {
                 showToast("Could not detect handles");
             }
@@ -339,7 +357,7 @@ async function fetchMultiVideoHandles() {
     } finally {
         if (fetchBtn) {
             fetchBtn.disabled = false;
-            fetchBtn.innerHTML = `<i data-lucide="sparkles" class="w-3.5 h-3.5 text-yellow-400"></i> Auto-Fetch All Handles`;
+            fetchBtn.innerHTML = `<i data-lucide="sparkles" class="w-3.5 h-3.5 text-yellow-400"></i> Auto-Fetch Handles & Tags`;
         }
         if (autoCreditBtn) {
             autoCreditBtn.disabled = false;
@@ -371,6 +389,10 @@ async function startMultiVideoCompilation() {
         return;
     }
 
+    const rankingHeader = document.getElementById("rankingHeaderInput")?.value.trim() || "Ranking Best Fails of The Week";
+    const labelInputs = document.querySelectorAll(".multi-clip-label");
+    const clipLabels = Array.from(labelInputs).map(i => i.value.trim());
+
     const targetDuration = parseInt(document.getElementById("compilationDurationSelect").value, 10);
     const countdownStyle = document.getElementById("compilationStyleSelect").value;
     const layout = document.querySelector('input[name="layout"]:checked')?.value || "split_screen";
@@ -379,14 +401,14 @@ async function startMultiVideoCompilation() {
 
     const genBtn = document.getElementById("generateCompilationBtn");
     genBtn.disabled = true;
-    genBtn.innerHTML = `<div class="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div> Scanning & Compiling Top Moments...`;
+    genBtn.innerHTML = `<div class="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div> Rendering Ranking Leaderboard Short...`;
 
     // Show progress card
     const progressCard = document.getElementById("progressCard");
     progressCard.classList.remove("hidden");
     document.getElementById("progressBarFill").style.width = "5%";
     document.getElementById("progressPercent").innerText = "5%";
-    document.getElementById("progressStatusText").innerHTML = `<span>Starting Multi-Video Countdown Pipeline...</span>`;
+    document.getElementById("progressStatusText").innerHTML = `<span>Starting Ranking Leaderboard Pipeline...</span>`;
 
     try {
         const res = await fetch("/api/compilation/create-multi-video", {
@@ -394,6 +416,8 @@ async function startMultiVideoCompilation() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 urls: urls,
+                ranking_header: rankingHeader,
+                clip_labels: clipLabels,
                 target_duration: targetDuration,
                 countdown_style: countdownStyle,
                 subtitle_style: subtitleStyle,

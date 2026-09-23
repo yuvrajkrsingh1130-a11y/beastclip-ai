@@ -155,12 +155,22 @@
                     </div>
 
                     <p class="text-xs text-gray-300 mb-4">
-                        Paste 2 to 5 YouTube URLs. The AI scans each video, extracts the #1 funniest/craziest climax from each, and stitches them with dynamic <strong class="text-yellow-400">#5 ... #1 countdown badge cards</strong> into a viral 40s/60s compilation Short!
+                        Paste 2 to 5 YouTube URLs. The AI automatically compiles them into the viral <strong class="text-yellow-400">"Ranking Best Fails / Moments"</strong> format with top banner hook, left vertical ladder (1..5), and progressive clip reveals!
                     </p>
 
-                    <!-- Multi URLs Input List -->
+                    <!-- Top Ranking Header Input -->
+                    <div class="mb-4 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/30">
+                        <label class="block text-xs font-bold text-yellow-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                            <span class="flex items-center gap-1.5"><i data-lucide="crown" class="w-3.5 h-3.5 text-yellow-400"></i> Ranking Header Title (Top Banner)</span>
+                            <span class="text-[9px] text-gray-400 font-mono">Live On-Screen</span>
+                        </label>
+                        <input id="rankingHeaderInput" type="text" value="Ranking Best Fails of The Week" placeholder="e.g. Ranking Best Fails of The Week"
+                            class="w-full bg-black/60 border border-yellow-500/40 rounded-xl px-3.5 py-2 text-xs text-yellow-200 font-bold focus:outline-none focus:border-yellow-400">
+                    </div>
+
+                    <!-- Multi URLs & Labels Input List -->
                     <div class="space-y-2.5" id="multiUrlInputsContainer">
-                        <div class="multi-url-row space-y-1 p-2 rounded-xl bg-white/[0.03] border border-white/5">
+                        <div class="multi-url-row space-y-1.5 p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
                             <div class="flex items-center gap-2">
                                 <span class="text-xs font-bold text-yellow-400 w-12 font-mono flex-shrink-0">Vid #1:</span>
                                 <input type="text" placeholder="https://www.youtube.com/watch?v=..." 
@@ -169,13 +179,17 @@
                                     <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
                                 </button>
                             </div>
+                            <div class="flex items-center gap-2 pl-14">
+                                <input type="text" placeholder="Ladder Label: e.g. smooth criminal 👏"
+                                    class="multi-clip-label flex-1 bg-black/30 border border-white/5 rounded-lg px-2.5 py-1.5 text-[11px] text-gray-200 focus:outline-none focus:border-yellow-500">
+                            </div>
                             <div class="row-creator-chip hidden flex items-center gap-1.5 text-[10px] pl-14">
                                 <span class="text-yellow-300 font-semibold font-mono channel-tag">@Creator</span>
                                 <span class="text-gray-500">•</span>
                                 <span class="video-title-snip truncate max-w-[240px] text-gray-400">Title</span>
                             </div>
                         </div>
-                        <div class="multi-url-row space-y-1 p-2 rounded-xl bg-white/[0.03] border border-white/5">
+                        <div class="multi-url-row space-y-1.5 p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
                             <div class="flex items-center gap-2">
                                 <span class="text-xs font-bold text-yellow-400 w-12 font-mono flex-shrink-0">Vid #2:</span>
                                 <input type="text" placeholder="https://www.youtube.com/watch?v=..." 
@@ -184,13 +198,17 @@
                                     <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
                                 </button>
                             </div>
+                            <div class="flex items-center gap-2 pl-14">
+                                <input type="text" placeholder="Ladder Label: e.g. rage quit 🤬"
+                                    class="multi-clip-label flex-1 bg-black/30 border border-white/5 rounded-lg px-2.5 py-1.5 text-[11px] text-gray-200 focus:outline-none focus:border-yellow-500">
+                            </div>
                             <div class="row-creator-chip hidden flex items-center gap-1.5 text-[10px] pl-14">
                                 <span class="text-yellow-300 font-semibold font-mono channel-tag">@Creator</span>
                                 <span class="text-gray-500">•</span>
                                 <span class="video-title-snip truncate max-w-[240px] text-gray-400">Title</span>
                             </div>
                         </div>
-                        <div class="multi-url-row space-y-1 p-2 rounded-xl bg-white/[0.03] border border-white/5">
+                        <div class="multi-url-row space-y-1.5 p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
                             <div class="flex items-center gap-2">
                                 <span class="text-xs font-bold text-yellow-400 w-12 font-mono flex-shrink-0">Vid #3:</span>
                                 <input type="text" placeholder="https://www.youtube.com/watch?v=..." 
@@ -198,6 +216,10 @@
                                 <button type="button" class="fetch-row-handle-btn p-2 rounded-lg bg-yellow-500/10 hover:bg-yellow-500/25 text-yellow-400 border border-yellow-500/30 transition flex-shrink-0" title="Auto-detect handle for Vid #3">
                                     <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
                                 </button>
+                            </div>
+                            <div class="flex items-center gap-2 pl-14">
+                                <input type="text" placeholder="Ladder Label: e.g. bottle flip clutch 🔥"
+                                    class="multi-clip-label flex-1 bg-black/30 border border-white/5 rounded-lg px-2.5 py-1.5 text-[11px] text-gray-200 focus:outline-none focus:border-yellow-500">
                             </div>
                             <div class="row-creator-chip hidden flex items-center gap-1.5 text-[10px] pl-14">
                                 <span class="text-yellow-300 font-semibold font-mono channel-tag">@Creator</span>
@@ -214,7 +236,7 @@
                         </button>
                         <button id="fetchMultiHandlesBtn" type="button" class="py-2.5 px-3 bg-yellow-500/20 hover:bg-yellow-500/35 border border-yellow-500/40 rounded-xl text-xs font-bold text-yellow-300 hover:text-yellow-200 transition flex items-center justify-center gap-1.5 shadow-sm">
                             <i data-lucide="sparkles" class="w-3.5 h-3.5 text-yellow-400"></i>
-                            <span>Auto-Fetch All Handles</span>
+                            <span>Auto-Fetch Handles & Tags</span>
                         </button>
                     </div>
 
@@ -1016,7 +1038,7 @@
     </footer>
 
     <!-- App Logic Script -->
-    <script src="/static/js/app.js?v=3.2"></script>
+    <script src="/static/js/app.js?v=3.3"></script>
     <script>
         lucide.createIcons();
     </script>
