@@ -152,7 +152,6 @@ function switchStudioMode(mode) {
     const panelSingle = document.getElementById("singleVideoPanel");
     const panelMulti = document.getElementById("multiVideoPanel");
     const singleClipSettings = document.getElementById("singleModeClipSettings");
-    const singleAutoBox = document.getElementById("singleAutoCompilationBox");
     const singleGenBox = document.getElementById("singleGenerateBox");
     const multiGenBox = document.getElementById("multiGenerateBox");
 
@@ -163,7 +162,6 @@ function switchStudioMode(mode) {
         panelSingle.classList.add("hidden");
         panelMulti.classList.remove("hidden");
         singleClipSettings.classList.add("hidden");
-        if (singleAutoBox) singleAutoBox.classList.add("hidden");
         singleGenBox.classList.add("hidden");
         multiGenBox.classList.remove("hidden");
     } else {
@@ -173,7 +171,6 @@ function switchStudioMode(mode) {
         panelSingle.classList.remove("hidden");
         panelMulti.classList.add("hidden");
         singleClipSettings.classList.remove("hidden");
-        if (singleAutoBox) singleAutoBox.classList.remove("hidden");
         singleGenBox.classList.remove("hidden");
         multiGenBox.classList.add("hidden");
     }
@@ -458,9 +455,7 @@ async function stitchGalleryClipsIntoCompilation() {
     const clipIds = clips.map(c => c.clip_id);
     const stitchBtn = document.getElementById("stitchCompilationBtn");
     stitchBtn.disabled = true;
-    const rankingHeader = document.getElementById("singleRankingHeaderInput")?.value.trim() 
-        || document.getElementById("rankingHeaderInput")?.value.trim() 
-        || "Ranking Best Fails of The Week";
+    stitchBtn.innerHTML = `<div class="w-3.5 h-3.5 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin"></div> Stitching...`;
 
     try {
         const res = await fetch("/api/compilation/stitch-gallery-clips", {
@@ -469,8 +464,7 @@ async function stitchGalleryClipsIntoCompilation() {
             body: JSON.stringify({
                 clip_ids: clipIds,
                 target_duration: 50,
-                countdown_style: "gold",
-                ranking_header: rankingHeader
+                countdown_style: "gold"
             })
         });
 
@@ -590,8 +584,6 @@ async function startClipGeneration() {
     const numClips = parseInt(document.getElementById("clipCountSelect").value, 10);
     const creatorCredit = document.getElementById("creatorCreditInput").value.trim();
     const enableSeamlessLoop = document.getElementById("seamlessLoopToggle")?.checked ?? true;
-    const autoCreateCompilation = document.getElementById("autoStitchCompilationToggle")?.checked ?? true;
-    const singleRankingHeader = document.getElementById("singleRankingHeaderInput")?.value.trim() || null;
 
     const generateBtn = document.getElementById("generateBtn");
     generateBtn.disabled = true;
@@ -616,9 +608,7 @@ async function startClipGeneration() {
                 layout: layout,
                 creator_credit: creatorCredit || null,
                 enable_copyright_shield: true,
-                enable_seamless_loop: enableSeamlessLoop,
-                auto_create_compilation: autoCreateCompilation,
-                ranking_header: singleRankingHeader
+                enable_seamless_loop: enableSeamlessLoop
             })
         });
 
