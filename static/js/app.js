@@ -287,18 +287,18 @@ function initEventListeners() {
         radio.addEventListener("change", onBatchModeChanged);
     });
 
-    // Voice Modal triggers & Preview
+    // Voice Modal triggers & Preview (if present)
     document.getElementById("previewVoiceBtn")?.addEventListener("click", previewTtsVoiceover);
-    document.getElementById("closeVoiceModalBtn").addEventListener("click", () => {
-        document.getElementById("voiceModal").classList.add("hidden");
+    document.getElementById("closeVoiceModalBtn")?.addEventListener("click", () => {
+        document.getElementById("voiceModal")?.classList.add("hidden");
         const audio = document.getElementById("voicePreviewAudio");
         if (audio) audio.pause();
     });
 
-    // Mic recording
-    document.getElementById("recordMicBtn").addEventListener("click", toggleMicRecording);
-    document.getElementById("applyMicBtn").addEventListener("click", submitMicVoiceover);
-    document.getElementById("applyTtsBtn").addEventListener("click", submitTtsVoiceover);
+    // Mic recording (if present)
+    document.getElementById("recordMicBtn")?.addEventListener("click", toggleMicRecording);
+    document.getElementById("applyMicBtn")?.addEventListener("click", submitMicVoiceover);
+    document.getElementById("applyTtsBtn")?.addEventListener("click", submitTtsVoiceover);
 
     // Auto Fetch Handle button
     document.getElementById("autoFetchHandleBtn")?.addEventListener("click", autoFetchCreatorHandle);
@@ -888,13 +888,6 @@ function renderGeneratedClips(clips) {
             </div>
         ` : '';
 
-        const soundBadge = clip.recommended_sound ? `
-            <div class="flex items-center justify-between text-[10px] text-gray-400 bg-black/30 px-2 py-1 rounded-lg border border-white/5">
-                <span class="flex items-center gap-1"><i data-lucide="music" class="w-3 h-3 text-pink-400"></i> Audio: ${escapeHtml(clip.recommended_sound)}</span>
-                <span class="text-amber-400 font-mono text-[9px]">🔥 Peak: 7:30 PM</span>
-            </div>
-        ` : '';
-
         card.innerHTML = `
             <!-- Top Badges -->
             <div class="flex items-center justify-between">
@@ -926,7 +919,6 @@ function renderGeneratedClips(clips) {
                     </button>
                 </div>
                 <p class="text-[10px] text-gray-400 italic line-clamp-2">"${escapeHtml(clip.transcript)}"</p>
-                ${soundBadge}
                 ${pinnedCommentHtml}
             </div>
 
@@ -950,11 +942,8 @@ function renderGeneratedClips(clips) {
                 <button onclick="copyClipField('${clip.clip_id}', 'description')" class="py-1.5 px-2 bg-white/5 hover:bg-white/10 rounded-lg text-[11px] font-medium text-gray-300 flex items-center justify-center gap-1.5 transition">
                     <i data-lucide="file-text" class="w-3.5 h-3.5 text-emerald-400"></i> Copy Description
                 </button>
-                <button onclick="openVoiceModal('${clip.clip_id}')" class="py-2 px-2 bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/40 rounded-lg text-[11px] font-bold text-purple-200 flex items-center justify-center gap-1.5 transition">
-                    <i data-lucide="mic" class="w-3.5 h-3.5 text-purple-300"></i> Add Voiceover
-                </button>
-                <a href="${clip.video_url}" download="Short_${clip.clip_id}.mp4" class="py-2 px-2 bg-white/10 hover:bg-white/20 rounded-lg text-[11px] font-bold text-white flex items-center justify-center gap-1.5 transition text-center">
-                    <i data-lucide="download" class="w-3.5 h-3.5"></i> Download MP4
+                <a href="${clip.video_url}" download="Short_${clip.clip_id}.mp4" class="py-2.5 px-3 bg-emerald-600/25 hover:bg-emerald-600/40 border border-emerald-500/40 rounded-lg text-xs font-bold text-emerald-300 flex items-center justify-center gap-2 transition col-span-2 shadow-sm text-center">
+                    <i data-lucide="download" class="w-4 h-4 text-emerald-400"></i> Download 9:16 Short (MP4)
                 </a>
                 <button onclick="openPublishModal('${clip.clip_id}')" class="py-2 px-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 rounded-lg text-[11px] font-bold text-white flex items-center justify-center gap-1.5 transition col-span-2 shadow-lg shadow-red-500/20">
                     <i data-lucide="youtube" class="w-4 h-4"></i> Upload / Schedule to YouTube

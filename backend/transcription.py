@@ -189,7 +189,7 @@ class Transcriber:
                     vad_parameters=vad_params,
                     no_speech_threshold=0.25,
                     compression_ratio_threshold=2.4,
-                    logprob_threshold=-1.0
+                    log_prob_threshold=-1.0
                 )
 
                 all_segments = []
@@ -202,9 +202,9 @@ class Transcriber:
                             corrected_word = normalize_slang(w.word.strip())
                             seg_words.append({
                                 "word": corrected_word,
-                                "start": round(w.start, 2),
-                                "end": round(w.end, 2),
-                                "probability": round(w.probability, 2) if hasattr(w, "probability") else 1.0
+                                "start": round(float(w.start), 2),
+                                "end": round(float(w.end), 2),
+                                "probability": round(float(w.probability), 2) if hasattr(w, "probability") else 1.0
                             })
                     
                     seg_raw_text = " ".join([w["word"] for w in seg_words]) if seg_words else seg.text.strip()
@@ -212,8 +212,8 @@ class Transcriber:
 
                     seg_data = {
                         "id": seg.id,
-                        "start": round(seg.start, 2),
-                        "end": round(seg.end, 2),
+                        "start": round(float(seg.start), 2),
+                        "end": round(float(seg.end), 2),
                         "text": seg_clean_text,
                         "words": seg_words
                     }
@@ -228,21 +228,50 @@ class Transcriber:
                     "segments": all_segments
                 }
             except Exception as e:
-                print(f"[Transcriber] Whisper transcribe error: {e}")
+                print(f"[Transcriber] Whisper primary transcribe notice: {e}, retrying with standard baseline...")
+                try:
+                    segments, info = self.model.transcribe(
+                        str(audio_path),
+                        word_timestamps=True,
+                        beam_size=2,
+                        temperature=0.0
+                    )
+                    all_segments = []
+                    full_text_list = []
+                    for seg in segments:
+                        seg_words = []
+                        if seg.words:
+                            for w in seg.words:
+                                seg_words.append({
+                                    "word": normalize_slang(w.word.strip()),
+                                    "start": round(float(w.start), 2),
+                                    "end": round(float(w.end), 2),
+                                    "probability": 1.0
+                                })
+                        seg_clean = post_process_transcript_text(seg.text.strip())
+                        all_segments.append({
+                            "id": seg.id,
+                            "start": round(float(seg.start), 2),
+                            "end": round(float(seg.end), 2),
+                            "text": seg_clean,
+                            "words": seg_words
+                        })
+                        full_text_list.append(seg_clean)
+                    return {
+                        "language": getattr(info, "language", "en"),
+                        "language_probability": getattr(info, "language_probability", 1.0),
+                        "duration": getattr(info, "duration", 0),
+                        "text": " ".join(full_text_list),
+                        "segments": all_segments
+                    }
+                except Exception as e2:
+                    print(f"[Transcriber] Whisper retry error: {e2}")
 
-        # Fallback dummy transcript if model completely unavailable
+        # Fallback empty transcript if audio is completely silent
         return {
             "language": "en",
             "language_probability": 1.0,
             "duration": 60.0,
-            "text": "INSANE Stream Moment!",
-            "segments": [
-                {
-                    "id": 1,
-                    "start": 0.0,
-                    "end": 5.0,
-                    "text": "INSANE Stream Moment!",
-                    "words": [{"word": "INSANE", "start": 0.0, "end": 1.0}, {"word": "Stream", "start": 1.0, "end": 2.5}, {"word": "Moment", "start": 2.5, "end": 4.5}]
-                }
-            ]
+            "text": "",
+            "segments": []
         }

@@ -223,14 +223,6 @@ Hit Subscribe and tap the bell 🔔 for daily viral streamer moments, rage clips
 
 {tags_string}"""
 
-        # Virality Breakdown & Growth Factor
-        sound_pool = [
-            "Trending Brazilian Phonk (Montagem)",
-            "Speed Scream Bass Boosted Remix",
-            "Dramatic Orchestral Hype Beat",
-            "Tokyo Drift Phonk Speed Hype"
-        ]
-        recommended_sound = sound_pool[(rank - 1) % len(sound_pool)]
         optimal_post_time = "7:30 PM - 9:30 PM EST (Peak Scroll Velocity)"
 
         # Full Viral Package (1-click copy bundle)
@@ -263,10 +255,8 @@ Hit Subscribe and tap the bell 🔔 for daily viral streamer moments, rage clips
             "virality_breakdown": {
                 "hook_strength": "98% (High Retention)",
                 "loop_score": "Infinite (A+)",
-                "optimal_time": optimal_post_time,
-                "recommended_sound": recommended_sound
+                "optimal_time": optimal_post_time
             },
-            "recommended_sound": recommended_sound,
             "optimal_post_time": optimal_post_time,
             "full_viral_package": full_viral_package,
             "creator_credit": creator_tag,
