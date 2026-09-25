@@ -26,12 +26,12 @@ SUBTITLE_PRESETS = {
     "hormozi": {
         "name": "Hormozi Gold",
         "fontname": "Arial Black",
-        "fontsize": 26,
-        "primary_color": "&H00FFFFFF",      # Crisp White (BGR)
-        "highlight_color": "&H0000FFFF",    # Hormozi Golden Yellow (BGR: B=00, G=FF, R=FF)
-        "outline_color": "&H00000000",      # Deep Black Outline
-        "outline_width": 4.5,
-        "shadow_width": 3.0,
+        "fontsize": 24,
+        "primary_color": "&H00FFFFFF&",      # Crisp White
+        "highlight_color": "&H0000FFFF&",    # Hormozi Golden Yellow (Pop Yellow)
+        "outline_color": "&H00000000&",      # Deep Black Outline
+        "outline_width": 4.0,
+        "shadow_width": 2.5,
         "bold": True,
         "all_caps": True,
         "emojis": True,
@@ -39,13 +39,13 @@ SUBTITLE_PRESETS = {
     },
     "beast": {
         "name": "MrBeast Green",
-        "fontname": "Impact",
-        "fontsize": 28,
-        "primary_color": "&H00FFFFFF",      # Crisp White
-        "highlight_color": "&H0022FF33",    # Electric Beast Neon Green (BGR: B=22, G=FF, R=33)
-        "outline_color": "&H00000000",      # Thick Outline
-        "outline_width": 5.0,
-        "shadow_width": 3.5,
+        "fontname": "Arial Black",
+        "fontsize": 25,
+        "primary_color": "&H00FFFFFF&",      # Crisp White
+        "highlight_color": "&H0022FF33&",    # Electric Neon Green
+        "outline_color": "&H00000000&",      # Thick Black Outline
+        "outline_width": 4.2,
+        "shadow_width": 2.5,
         "bold": True,
         "all_caps": True,
         "emojis": True,
@@ -54,12 +54,12 @@ SUBTITLE_PRESETS = {
     "neon": {
         "name": "Kai Cenat Neon",
         "fontname": "Arial Black",
-        "fontsize": 26,
-        "primary_color": "&H00FFFFFF",
-        "highlight_color": "&H00FFFF00",    # Cyber Cyan (BGR: B=FF, G=FF, R=00)
-        "outline_color": "&H004B0082",      # Indigo Glow
-        "outline_width": 4.5,
-        "shadow_width": 3.0,
+        "fontsize": 24,
+        "primary_color": "&H00FFFFFF&",
+        "highlight_color": "&H00FFFF00&",    # Cyber Cyan
+        "outline_color": "&H00000000&",
+        "outline_width": 4.0,
+        "shadow_width": 2.5,
         "bold": True,
         "all_caps": True,
         "emojis": True,
@@ -67,13 +67,13 @@ SUBTITLE_PRESETS = {
     },
     "fire_red": {
         "name": "Speed Fire & Rage",
-        "fontname": "Impact",
-        "fontsize": 30,
-        "primary_color": "&H00FFFFFF",
-        "highlight_color": "&H000033FF",    # Flaming Fire Orange/Red (BGR: B=00, G=33, R=FF)
-        "outline_color": "&H00000000",
-        "outline_width": 5.2,
-        "shadow_width": 3.5,
+        "fontname": "Arial Black",
+        "fontsize": 26,
+        "primary_color": "&H00FFFFFF&",
+        "highlight_color": "&H000033FF&",    # Fiery Red / Orange Flame
+        "outline_color": "&H00000000&",
+        "outline_width": 4.5,
+        "shadow_width": 2.8,
         "bold": True,
         "all_caps": True,
         "emojis": True,
@@ -82,12 +82,12 @@ SUBTITLE_PRESETS = {
     "clean_pill": {
         "name": "Minimalist Pill",
         "fontname": "Arial Black",
-        "fontsize": 24,
-        "primary_color": "&H00FFFFFF",
-        "highlight_color": "&H0033CCFF",    # Warm Amber (BGR: B=33, G=CC, R=FF)
-        "outline_color": "&H00151515",
-        "outline_width": 3.5,
-        "shadow_width": 2.0,
+        "fontsize": 22,
+        "primary_color": "&H00FFFFFF&",
+        "highlight_color": "&H0033CCFF&",    # Warm Amber
+        "outline_color": "&H00151515&",
+        "outline_width": 3.0,
+        "shadow_width": 1.5,
         "bold": True,
         "all_caps": False,
         "emojis": True,
@@ -96,12 +96,12 @@ SUBTITLE_PRESETS = {
     "glitch_purple": {
         "name": "Twitch Purple",
         "fontname": "Arial Black",
-        "fontsize": 27,
-        "primary_color": "&H00FFFFFF",
-        "highlight_color": "&H00FF33CC",    # Vivid Violet/Purple (BGR: B=FF, G=33, R=CC)
-        "outline_color": "&H00000000",
-        "outline_width": 4.5,
-        "shadow_width": 3.0,
+        "fontsize": 24,
+        "primary_color": "&H00FFFFFF&",
+        "highlight_color": "&H00FF33CC&",    # Vivid Violet/Purple
+        "outline_color": "&H00000000&",
+        "outline_width": 4.0,
+        "shadow_width": 2.5,
         "bold": True,
         "all_caps": True,
         "emojis": True,
@@ -110,12 +110,12 @@ SUBTITLE_PRESETS = {
     "cyber_glitch": {
         "name": "Cyberpunk Neon",
         "fontname": "Arial Black",
-        "fontsize": 26,
-        "primary_color": "&H00FFFFFF",
-        "highlight_color": "&H00FF0099",    # Electric Hot Pink (BGR: B=FF, G=00, R=99)
-        "outline_color": "&H00FFFF00",      # Cyan Glow Stroke (BGR: B=FF, G=FF, R=00)
-        "outline_width": 4.5,
-        "shadow_width": 3.2,
+        "fontsize": 24,
+        "primary_color": "&H00FFFFFF&",
+        "highlight_color": "&H00FF0099&",    # Hot Pink
+        "outline_color": "&H00000000&",
+        "outline_width": 4.0,
+        "shadow_width": 2.5,
         "bold": True,
         "all_caps": True,
         "emojis": True,
@@ -123,13 +123,13 @@ SUBTITLE_PRESETS = {
     },
     "shonen_gold": {
         "name": "Anime Super Saiyan",
-        "fontname": "Impact",
-        "fontsize": 30,
-        "primary_color": "&H00FFFFFF",
-        "highlight_color": "&H0000E5FF",    # Bright Golden Glow (BGR: B=00, G=E5, R=FF)
-        "outline_color": "&H000000FF",      # Flaming Red Stroke (BGR: B=00, G=00, R=FF)
-        "outline_width": 5.5,
-        "shadow_width": 3.8,
+        "fontname": "Arial Black",
+        "fontsize": 26,
+        "primary_color": "&H00FFFFFF&",
+        "highlight_color": "&H0000E5FF&",    # Super Saiyan Gold
+        "outline_color": "&H00000000&",
+        "outline_width": 4.5,
+        "shadow_width": 2.8,
         "bold": True,
         "all_caps": True,
         "emojis": True,

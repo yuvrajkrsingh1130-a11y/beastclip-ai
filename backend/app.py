@@ -66,7 +66,7 @@ class ProcessRequest(BaseModel):
     target_duration: int = 40        # 30, 40, 60 seconds
     num_clips: int = 5               # 3, 5, 10, 15
     subtitle_style: str = "hormozi"  # hormozi, beast, neon, fire_red
-    layout: str = "split_screen"     # smart_face, split_screen, blurred_backdrop
+    layout: str = "smart_face"       # smart_face (9:16 full vertical), split_screen, blurred_backdrop
     creator_credit: Optional[str] = None
     enable_copyright_shield: bool = True
     enable_seamless_loop: bool = True
@@ -78,7 +78,7 @@ class MultiVideoCompilationRequest(BaseModel):
     target_duration: int = 50        # 40, 50, 60 seconds
     countdown_style: str = "gold"    # gold, cyber, fire, beast
     subtitle_style: str = "hormozi"
-    layout: str = "split_screen"
+    layout: str = "smart_face"
     creator_credit: Optional[str] = None
 
 class StitchClipsRequest(BaseModel):

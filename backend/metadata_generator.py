@@ -51,8 +51,38 @@ class MetadataGenerator:
 
         context = self._analyze_context_hooks(clip_text)
 
-        # High CTR Viral Title Pools based on detected context
-        if context == "humor":
+        # Extract subject entities and key topic from original title and dialogue
+        clean_orig = re.sub(r'[#@|\[\]()\-!?,.]', ' ', original_title).strip()
+        topic_words = [w for w in clean_orig.split() if w.lower() not in ["the", "a", "an", "is", "of", "and", "in", "to", "i", "my", "with", "video", "official", "stream", "full", "highlights", "clip", "clips"]]
+        key_topic = " ".join(topic_words[:3]).upper() if topic_words else "STREAM"
+
+        combined_check = f"{original_title} {clip_text}".upper()
+        found_entity = ""
+        for ent in ["RONALDO", "CR7", "MESSI", "KAI CENAT", "JYNXZI", "CASEOH", "SPEED", "DRAKE", "MRBEAST", "FORTNITE", "GTA", "FIFA", "ROBLOX", "MINECRAFT"]:
+            if re.search(r'\b' + re.escape(ent) + r'\b', combined_check):
+                found_entity = ent
+                break
+
+        # High CTR Viral Title Pools based on detected topic and context
+        if found_entity == "RONALDO" or "RONALDO" in combined_check:
+            title_pool = [
+                f"SPEED FINALLY MET RONALDO AND BROKE DOWN CRYING 😭🇵🇹",
+                f"RONALDO DID NOT EXPECT {c_upper} TO DO THIS 💀🔥",
+                f"THE EXACT SECOND {c_upper}'S DREAM CAME TRUE 🥹❤️",
+                f"SPEED SHOWED RONALDO HIS TATTOO AND THIS HAPPENED 💀🇵🇹",
+                f"{c_upper} AND RONALDO DID THE SIUUU TOGETHER! 🐐🔥",
+                f"IS THIS THE GREATEST STREAM MOMENT IN INTERNET HISTORY? 🐐"
+            ]
+        elif key_topic and key_topic != "STREAM" and len(key_topic) > 2:
+            title_pool = [
+                f"{c_upper} - {key_topic} HAD THE ENTIRE CHAT IN TEARS 😭💀",
+                f"BRO AIN'T NO WAY {c_upper} DID THIS DURING {key_topic}... 💀",
+                f"WHEN {c_upper} COMPLETELY LOST HIS MIND DURING {key_topic} 😱⚡",
+                f"THE MOST VIRAL {key_topic} MOMENT OF 2026! 💥",
+                f"NOBODY EXPECTED {c_upper} TO REACT LIKE THIS TO {key_topic} 🚨",
+                f"{c_upper}'S WILDEST REACTION: {key_topic} 🔥"
+            ]
+        elif context == "humor":
             title_pool = [
                 f"WHEN {c_upper} CANNOT STOP LAUGHING 💀🤣",
                 f"BRO AIN'T NO WAY {c_upper} SAID THIS OUT LOUD... 💀",
@@ -65,27 +95,19 @@ class MetadataGenerator:
             title_pool = [
                 f"{c_upper} RAGED SO HARD HIS MIC ACTUALLY BROKE 🤬💥",
                 f"WHEN {c_upper} COMPLETELY LOSES HIS MIND 😱⚡",
-                f"HE ACTUALLY SNAPPED OVER THIS GAME... 🤯🔥",
+                f"HE ACTUALLY SNAPPED OVER THIS... 🤯🔥",
                 f"THE MOST AGGRESSIVE CRASH OUT OF 2026! 💥",
                 f"{c_upper} DESTROYED HIS SETUP AFTER THIS PLAY 😭",
                 f"NEVER MAKE {c_upper} ANGRY ON STREAM... 🤬"
             ]
         elif context == "shock":
             title_pool = [
-                f"HE GOT CAUGHT IN 4K ON LIVE CAMERA! 📸💀",
+                f"{c_upper} DID NOT EXPECT THIS TO HAPPEN ON LIVE CAMERA! 📸💀",
                 f"{c_upper} REALIZED TOO LATE WHAT HE JUST DID... 😭😱",
                 f"THE ENDING WILL MAKE YOUR JAW DROP... 😱🤯",
                 f"BRO'S REACTION TO THIS IS ACTUALLY PRICELESS 💀",
                 f"NOBODY EXPECTED THIS TO HAPPEN ON STREAM! 🚨",
-                f"IS THIS THE MOST ILLEGAL STREAM MOMENT EVER? 😱"
-            ]
-        elif context == "clutch":
-            title_pool = [
-                f"TOP 0.001% GOD-TIER CLUTCH BY {c_upper}! 🎯🔥",
-                f"HE HIT THE CLEANEST CLIP IN STREAMING HISTORY! ⚡🏆",
-                f"WHEN {c_upper} ENTERS GOD MODE ON STREAM 🔥👑",
-                f"HOW DID HE ACTUALLY SURVIVE THIS SITUATION?! 🤯",
-                f"THE ENTIRE LOBBY JUST GOT HUMILIATED... 💀⚡"
+                f"IS THIS THE CRAZIEST STREAM MOMENT EVER? 😱"
             ]
         else:
             title_pool = [

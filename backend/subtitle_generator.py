@@ -61,27 +61,29 @@ class SubtitleGenerator:
 
     def _get_active_word_effect(self, highlight_color: str, animation_type: str) -> str:
         """Returns the ASS override tags for the active animated word."""
+        # Ensure trailing ampersand on color tag
+        hl_color = highlight_color if highlight_color.endswith('&') else f"{highlight_color}&"
         if animation_type == "bounce":
             # MrBeast Punch Bounce
-            return r"{\c" + highlight_color + r"\fscx95\fscy95\t(0,70,\fscx125\fscy125)\t(70,140,\fscx108\fscy108)}"
+            return r"{\c" + hl_color + r"\fscx100\fscy100\t(0,80,\fscx122\fscy122)\t(80,160,\fscx108\fscy108)}"
         elif animation_type == "tilt":
             # Kai Cenat Cyber Tilt
-            return r"{\c" + highlight_color + r"\frz-4\fscx115\fscy115\t(0,70,\frz3)\t(70,140,\frz0\fscx106\fscy106)}"
+            return r"{\c" + hl_color + r"\frz-3\fscx115\fscy115\t(0,80,\frz3)\t(80,160,\frz0\fscx106\fscy106)}"
         elif animation_type == "shake":
             # Speed Fire & Rage Rumble
-            return r"{\c" + highlight_color + r"\frz3\fscx120\fscy120\t(0,40,\frz-3)\t(40,80,\frz2)\t(80,120,\frz0\fscx110\fscy110)}"
+            return r"{\c" + hl_color + r"\frz3\fscx120\fscy120\t(0,40,\frz-3)\t(40,80,\frz2)\t(80,120,\frz0\fscx110\fscy110)}"
         elif animation_type == "glitch":
             # Cyberpunk Electric Glitch
-            return r"{\c" + highlight_color + r"\frz-3\fscx90\fscy90\t(0,50,\frz3\fscx125\fscy125)\t(50,100,\frz0\fscx108\fscy108)}"
+            return r"{\c" + hl_color + r"\frz-2\fscx95\fscy95\t(0,60,\frz2\fscx120\fscy120)\t(60,120,\frz0\fscx108\fscy108)}"
         elif animation_type == "power":
             # Anime Super Saiyan Aura Punch
-            return r"{\c" + highlight_color + r"\fscx100\fscy100\t(0,60,\fscx135\fscy135)\t(60,130,\fscx110\fscy110)}"
+            return r"{\c" + hl_color + r"\fscx100\fscy100\t(0,70,\fscx128\fscy128)\t(70,140,\fscx110\fscy110)}"
         elif animation_type == "smooth":
             # Minimalist Clean
-            return r"{\c" + highlight_color + r"\fscx106\fscy106}"
+            return r"{\c" + hl_color + r"\fscx106\fscy106}"
         else:
             # Hormozi Pop Pulse (Default)
-            return r"{\c" + highlight_color + r"\fscx118\fscy118\t(0,80,\fscx106\fscy106)}"
+            return r"{\c" + hl_color + r"\fscx118\fscy118\t(0,90,\fscx108\fscy108)}"
 
     def create_ass_subtitles(
         self,
@@ -96,12 +98,12 @@ class SubtitleGenerator:
         continuous active word flow, and crisp credit attribution header.
         """
         fontname = self.preset.get("fontname", "Arial Black")
-        fontsize = self.preset.get("fontsize", 26)
-        primary_color = self.preset.get("primary_color", "&H00FFFFFF")
-        highlight_color = self.preset.get("highlight_color", "&H0000FFFF")
-        outline_color = self.preset.get("outline_color", "&H00000000")
-        outline_width = self.preset.get("outline_width", 4.5)
-        shadow_width = self.preset.get("shadow_width", 3.0)
+        fontsize = int(self.preset.get("fontsize", 24) * 2.2)  # ~52-56px for 1080x1920
+        primary_color = self.preset.get("primary_color", "&H00FFFFFF&")
+        highlight_color = self.preset.get("highlight_color", "&H0000FFFF&")
+        outline_color = self.preset.get("outline_color", "&H00000000&")
+        outline_width = 5.0
+        shadow_width = 2.5
         animation_type = self.preset.get("animation", "pop")
         all_caps = self.preset.get("all_caps", True)
         emojis_enabled = self.preset.get("emojis", True)
@@ -119,8 +121,8 @@ PlayResY: 1920
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,{fontname},{fontsize * 2.8},{primary_color},&H000000FF,{outline_color},&H90000000,-1,0,0,0,100,100,0,0,1,{outline_width * 2},{shadow_width * 2},2,40,40,520,1
-Style: CreditBadge,Arial,26,&H00FFFFFF,&H000000FF,&H00000000,&H90000000,-1,0,0,0,100,100,0,0,1,3,2,8,40,40,90,1
+Style: Default,{fontname},{fontsize},{primary_color},&H000000FF&,{outline_color},&HB0000000&,-1,0,0,0,100,100,1,0,1,{outline_width},{shadow_width},2,40,40,380,1
+Style: CreditBadge,Arial,28,&H00FFFFFF&,&H000000FF&,&H00000000&,&H90000000&,-1,0,0,0,100,100,0,0,1,3,2,8,40,40,90,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text

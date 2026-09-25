@@ -67,29 +67,38 @@ class ClipExtractor:
 
             # C. Multi-Signal Comedy, Rage & Viral Triggers
             funny_keywords = [
-                "haha", "hahaha", "lol", "lmao", "crying", "rofl", "giggle", "dead", "skull",
-                "bro cooked", "cooked", "what am i watching", "he did not", "bro ain't no way",
-                "look at him", "look at this", "ain't no way", "i'm dead", "i'm done", "i can't"
+                "haha", "hahaha", "lol", "lmao", "crying", "rofl", "dead", "skull",
+                "cooked", "aint no way", "look at him", "look at this", "im dead"
             ]
             shock_keywords = [
                 "no way", "oh my god", "omg", "what the", "what is that", "bro what",
-                "are you serious", "did he just", "he's hacking", "cheating", "stop it",
-                "shut up", "get out", "help me", "nah nah", "holy", "insane", "crazy", "wtf"
+                "are you serious", "did he just", "stop it", "shut up", "holy", "insane", "crazy", "wtf", "ronaldo", "messi"
             ]
             hype_keywords = [
-                "w stream", "w chat", "l chat", "w art", "l art", "clutch", "sui", "suiii",
-                "clip that", "watch this", "speed", "kai", "jynxzi", "caseoh", "gg", "w bro"
+                "w stream", "w chat", "clutch", "sui", "suiii", "siu", "clip that", "watch this", "speed", "kai", "goat"
             ]
 
-            funny_count = sum(clip_text_lower.count(kw) for kw in funny_keywords)
-            shock_count = sum(clip_text_lower.count(kw) for kw in shock_keywords)
-            hype_count = sum(clip_text_lower.count(kw) for kw in hype_keywords)
+            # Use regex whole-word boundaries so single letters or subwords never false-positive
+            funny_count = sum(len(re.findall(r'\b' + re.escape(kw) + r'\b', clip_text_lower)) for kw in funny_keywords)
+            shock_count = sum(len(re.findall(r'\b' + re.escape(kw) + r'\b', clip_text_lower)) for kw in shock_keywords)
+            hype_count = sum(len(re.findall(r'\b' + re.escape(kw) + r'\b', clip_text_lower)) for kw in hype_keywords)
             exclamation_count = clip_text.count("!") + clip_text.count("?")
 
             semantic_bonus = min(
                 45.0,
-                (funny_count * 8.0) + (shock_count * 7.0) + (hype_count * 5.0) + (exclamation_count * 2.5)
+                (funny_count * 8.0) + (shock_count * 7.0) + (hype_count * 6.0) + (exclamation_count * 2.0)
             )
+
+            # Detect and penalize Whisper Hallucination / Glitched Repetition (e.g. "W, W, W, W" or "uh, uh")
+            words_list = [w.lower().strip(".,!?\"'") for w in clip_text.split() if w.strip()]
+            repetition_penalty = 0.0
+            if len(words_list) >= 6:
+                from collections import Counter
+                counts = Counter(words_list)
+                most_common_word, most_common_count = counts.most_common(1)[0]
+                if (most_common_count / len(words_list)) > 0.35:
+                    # Massive penalty for stutter / hallucination
+                    repetition_penalty = 60.0
 
             # D. Hook Intensity in First 4 Seconds
             hook_words = []
@@ -99,15 +108,15 @@ class ClipExtractor:
                         hook_words.append(w["word"])
             hook_text = " ".join(hook_words).lower()
             hook_bonus = 0.0
-            if any(kw in hook_text for kw in ["wait", "what", "bro", "no way", "look", "oh", "listen", "chat", "stop"]):
-                hook_bonus = 12.0
+            if any(re.search(r'\b' + re.escape(kw) + r'\b', hook_text) for kw in ["wait", "what", "bro", "no way", "look", "oh", "listen", "chat", "stop", "ronaldo", "omg"]):
+                hook_bonus = 15.0
 
             # E. Speech Velocity (Words per second excitement spike)
             total_words_in_clip = sum(len(s.get("words", [])) for s in clip_transcript_segments)
             words_per_sec = total_words_in_clip / max(1.0, (end_t - start_t))
-            pacing_bonus = min(15.0, max(0.0, (words_per_sec - 2.2) * 5.0))
+            pacing_bonus = min(15.0, max(0.0, (words_per_sec - 2.0) * 4.0))
 
-            # F. Peak Centering Bonus: Give bonus if a major scream/laugh spike is inside the climax zone (25% to 75% of clip)
+            # F. Peak Centering Bonus: Climax zone (20% to 80% of clip)
             peak_center_bonus = 0.0
             mid_start = start_t + (window_size * 0.20)
             mid_end = start_t + (window_size * 0.80)
@@ -119,9 +128,10 @@ class ClipExtractor:
             raw_score = (
                 (hype_score * 0.45) +
                 (semantic_bonus * 0.30) +
-                (hook_bonus * 0.10) +
+                (hook_bonus * 0.12) +
                 (pacing_bonus * 0.08) +
-                (peak_center_bonus * 0.07)
+                (peak_center_bonus * 0.05) -
+                repetition_penalty
             )
             virality_score = min(99.5, max(15.0, round(raw_score, 1)))
 

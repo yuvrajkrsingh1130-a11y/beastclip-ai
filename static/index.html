@@ -275,11 +275,19 @@
                     <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">9:16 Vertical Video Framing</label>
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-2" id="layoutGroup">
                         <label class="cursor-pointer">
-                            <input type="radio" name="layout" value="split_screen" class="peer hidden" checked>
+                            <input type="radio" name="layout" value="smart_face" class="peer hidden" checked>
                             <div class="p-2.5 rounded-xl border border-white/10 peer-checked:border-indigo-500 peer-checked:bg-indigo-500/20 text-center transition">
+                                <i data-lucide="smartphone" class="w-4 h-4 mx-auto mb-1 text-indigo-400"></i>
+                                <div class="text-[11px] font-bold">9:16 Fullscreen</div>
+                                <div class="text-[9px] text-gray-400">Crisp Full Bleed</div>
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="layout" value="split_screen" class="peer hidden">
+                            <div class="p-2.5 rounded-xl border border-white/10 peer-checked:border-purple-500 peer-checked:bg-purple-500/20 text-center transition">
                                 <i data-lucide="split" class="w-4 h-4 mx-auto mb-1 text-purple-400"></i>
                                 <div class="text-[11px] font-bold">Split Screen</div>
-                                <div class="text-[9px] text-gray-400">Cam Top + Screen</div>
+                                <div class="text-[9px] text-gray-400">Cam Top + Game</div>
                             </div>
                         </label>
                         <label class="cursor-pointer">
@@ -291,16 +299,8 @@
                             </div>
                         </label>
                         <label class="cursor-pointer">
-                            <input type="radio" name="layout" value="smart_face" class="peer hidden">
-                            <div class="p-2.5 rounded-xl border border-white/10 peer-checked:border-indigo-500 peer-checked:bg-indigo-500/20 text-center transition">
-                                <i data-lucide="scan-face" class="w-4 h-4 mx-auto mb-1 text-indigo-400"></i>
-                                <div class="text-[11px] font-bold">Face Zoom</div>
-                                <div class="text-[9px] text-gray-400">Cam Focused</div>
-                            </div>
-                        </label>
-                        <label class="cursor-pointer">
                             <input type="radio" name="layout" value="blurred_backdrop" class="peer hidden">
-                            <div class="p-2.5 rounded-xl border border-white/10 peer-checked:border-indigo-500 peer-checked:bg-indigo-500/20 text-center transition">
+                            <div class="p-2.5 rounded-xl border border-white/10 peer-checked:border-pink-500 peer-checked:bg-pink-500/20 text-center transition">
                                 <i data-lucide="layout-template" class="w-4 h-4 mx-auto mb-1 text-pink-400"></i>
                                 <div class="text-[11px] font-bold">Blur Backdrop</div>
                                 <div class="text-[9px] text-gray-400">Ambient BG</div>
@@ -1038,7 +1038,7 @@
     </footer>
 
     <!-- App Logic Script -->
-    <script src="/static/js/app.js?v=4.0"></script>
+    <script src="/static/js/app.js?v=4.2"></script>
     <script>
         lucide.createIcons();
     </script>
