@@ -261,21 +261,18 @@ class CompilationBuilder:
                 escaped_p = Path(p).as_posix()
                 f.write(f"file '{escaped_p}'\n")
 
-        # Dynamic bottom progress bar
-        total_dur_calc = len(processed_parts) * target_per_seg
-        pbar_filter = f"drawbox=x=0:y=1910:w='(t/{max(1.0, total_dur_calc)})*1080':h=10:color=gold@0.9:t=fill"
-
         final_cmd = [
             "ffmpeg", "-y",
             "-f", "concat",
             "-safe", "0",
             "-i", str(concat_list_file),
-            "-vf", pbar_filter,
             "-c:v", "libx264",
-            "-preset", "ultrafast",
+            "-pix_fmt", "yuv420p",
+            "-preset", "veryfast",
             "-crf", "20",
             "-c:a", "aac",
-            "-b:a", "256k",
+            "-b:a", "192k",
+            "-movflags", "+faststart",
             str(output_path)
         ]
 

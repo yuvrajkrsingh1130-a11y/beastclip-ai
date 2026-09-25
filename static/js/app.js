@@ -771,7 +771,7 @@ function renderGeneratedClips(clips) {
 
             <!-- Video Player (9:16 Vertical with Seamless Loop) -->
             <div class="relative rounded-xl overflow-hidden bg-black aspect-short max-h-[480px] mx-auto border border-white/10">
-                <video id="video_${clip.clip_id}" controls loop playsinline poster="${clip.thumbnail_url}" class="w-full h-full object-cover">
+                <video id="video_${clip.clip_id}" controls loop playsinline preload="metadata" poster="${clip.thumbnail_url}" class="w-full h-full object-cover">
                     <source src="${clip.video_url}" type="video/mp4">
                     Your browser does not support the video tag.
                 </video>

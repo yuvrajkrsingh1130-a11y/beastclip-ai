@@ -3,7 +3,6 @@ import re
 from pathlib import Path
 from backend.config import SUBTITLE_PRESETS
 
-# Emoji mapping for viral streamer keywords
 KEYWORD_EMOJIS = {
     "speed": "⚡",
     "kai": "👑",
@@ -39,9 +38,6 @@ KEYWORD_EMOJIS = {
     "chat": "💬"
 }
 
-# 120ms Acoustic Onset Calibration (Calibrates Whisper cross-attention center to exact vocal attack onset)
-SYNC_CALIBRATION = 0.12
-
 def format_ass_time(seconds: float) -> str:
     """Converts seconds into ASS timestamp format H:MM:SS.cs"""
     seconds = max(0.0, float(seconds))
@@ -62,31 +58,6 @@ class SubtitleGenerator:
         self.preset_name = preset_name
         self.preset = SUBTITLE_PRESETS.get(preset_name, SUBTITLE_PRESETS["hormozi"])
 
-    def _get_active_word_effect(self, highlight_color: str, animation_type: str) -> str:
-        """Returns the ASS override tags for the active animated word."""
-        hl_color = highlight_color if highlight_color.endswith('&') else f"{highlight_color}&"
-        if animation_type == "bounce":
-            # MrBeast Punch Bounce
-            return r"{\c" + hl_color + r"\fscx100\fscy100\t(0,60,\fscx126\fscy126)\t(60,130,\fscx108\fscy108)}"
-        elif animation_type == "tilt":
-            # Kai Cenat Cyber Tilt
-            return r"{\c" + hl_color + r"\frz-3\fscx115\fscy115\t(0,60,\frz3)\t(60,130,\frz0\fscx106\fscy106)}"
-        elif animation_type == "shake":
-            # Speed Fire & Rage Rumble
-            return r"{\c" + hl_color + r"\frz3\fscx124\fscy124\t(0,40,\frz-3)\t(40,80,\frz2)\t(80,120,\frz0\fscx110\fscy110)}"
-        elif animation_type == "glitch":
-            # Cyberpunk Electric Glitch
-            return r"{\c" + hl_color + r"\frz-2\fscx95\fscy95\t(0,50,\frz2\fscx122\fscy122)\t(50,110,\frz0\fscx108\fscy108)}"
-        elif animation_type == "power":
-            # Anime Super Saiyan Aura Punch
-            return r"{\c" + hl_color + r"\fscx100\fscy100\t(0,60,\fscx132\fscy132)\t(60,130,\fscx112\fscy112)}"
-        elif animation_type == "smooth":
-            # Minimalist Clean
-            return r"{\c" + hl_color + r"\fscx108\fscy108}"
-        else:
-            # Hormozi Pop Pulse (Default)
-            return r"{\c" + hl_color + r"\fscx122\fscy122\t(0,70,\fscx108\fscy108)}"
-
     def create_ass_subtitles(
         self,
         clip_words: list,
@@ -96,17 +67,16 @@ class SubtitleGenerator:
         max_words_per_line: int = 2
     ):
         """
-        Generates zero-lag, frame-perfect ASS subtitles with kinetic creator animations,
-        small talk retention, acoustic onset calibration, and crisp attribution.
+        Generates ultra-fast, frame-perfect kinetic captions (1-2 words per pulse),
+        matching high-retention creator formats (IShowSpeed, Kai Cenat, MrBeast).
         """
         fontname = self.preset.get("fontname", "Arial Black")
-        fontsize = int(self.preset.get("fontsize", 24) * 2.3)  # ~55px for 1080x1920
+        fontsize = int(self.preset.get("fontsize", 24) * 2.2)  # ~52px
         primary_color = self.preset.get("primary_color", "&H00FFFFFF&")
         highlight_color = self.preset.get("highlight_color", "&H0000FFFF&")
         outline_color = self.preset.get("outline_color", "&H00000000&")
-        outline_width = 5.2
-        shadow_width = 2.5
-        animation_type = self.preset.get("animation", "pop")
+        outline_width = 4.5
+        shadow_width = 2.0
         all_caps = self.preset.get("all_caps", True)
         emojis_enabled = self.preset.get("emojis", True)
 
@@ -123,15 +93,15 @@ PlayResY: 1920
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,{fontname},{fontsize},{primary_color},&H000000FF&,{outline_color},&HB0000000&,-1,0,0,0,100,100,1,0,1,{outline_width},{shadow_width},2,40,40,380,1
-Style: CreditBadge,Arial,28,&H00FFFFFF&,&H000000FF&,&H00000000&,&H90000000&,-1,0,0,0,100,100,0,0,1,3,2,8,40,40,90,1
+Style: Default,{fontname},{fontsize},{primary_color},&H000000FF&,{outline_color},&HB0000000&,-1,0,0,0,100,100,1,0,1,{outline_width},{shadow_width},2,40,40,360,1
+Style: CreditBadge,Arial,26,&H00FFFFFF&,&H000000FF&,&H00000000&,&H90000000&,-1,0,0,0,100,100,0,0,1,3,2,8,40,40,90,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 Dialogue: 1,0:00:00.00,{format_ass_time(clip_duration)},CreditBadge,,0,0,0,,ORIGINAL CREDIT: {clean_credit}
 """
 
-        # Filter and apply acoustic onset calibration to words
+        # Filter words
         filtered_words = []
         last_word_str = None
         for w in clip_words:
@@ -140,22 +110,16 @@ Dialogue: 1,0:00:00.00,{format_ass_time(clip_duration)},CreditBadge,,0,0,0,,ORIG
                 continue
             
             lower_raw = raw.lower().strip("!?,.:;-")
-            # Prevent rapid duplicate hallucination spam
-            if lower_raw and lower_raw == last_word_str and len(filtered_words) > 0 and (w["start"] - filtered_words[-1]["start"] < 0.18):
+            if lower_raw and lower_raw == last_word_str and len(filtered_words) > 0 and (w["start"] - filtered_words[-1]["start"] < 0.15):
                 continue
             last_word_str = lower_raw
 
-            # Acoustic calibration: shift start forward by SYNC_CALIBRATION to match vocal onset
-            raw_start = float(w.get("start", 0.0))
-            raw_end = float(w.get("end", raw_start + 0.3))
-            
-            calibrated_start = max(0.0, raw_start - SYNC_CALIBRATION)
-            calibrated_end = max(calibrated_start + 0.08, raw_end - (SYNC_CALIBRATION * 0.5))
-
+            start_t = max(0.0, float(w.get("start", 0.0)))
+            end_t = max(start_t + 0.08, float(w.get("end", start_t + 0.25)))
             filtered_words.append({
                 "word": raw,
-                "start": calibrated_start,
-                "end": calibrated_end
+                "start": start_t,
+                "end": end_t
             })
 
         if not filtered_words:
@@ -163,68 +127,52 @@ Dialogue: 1,0:00:00.00,{format_ass_time(clip_duration)},CreditBadge,,0,0,0,,ORIG
                 f.write(ass_content)
             return
 
-        # Snappy Viral Chunking (1 to 2 words per chunk for punchy pacing)
-        chunks = []
-        current_chunk = []
+        # Frame-Perfect Kinetic Pulse Generation (1 to 2 words per pulse)
+        # Each pulse shows only the active word(s) spoken at that exact moment
+        i = 0
+        n_words = len(filtered_words)
 
-        for i, w in enumerate(filtered_words):
-            current_chunk.append(w)
-            
-            is_max_len = len(current_chunk) >= max_words_per_line
-            has_punctuation = any(w["word"].endswith(p) for p in [".", "!", "?", ","])
-            
-            is_speech_pause = False
-            if i < len(filtered_words) - 1:
-                pause_gap = filtered_words[i+1]["start"] - w["end"]
-                if pause_gap > 0.25:
-                    is_speech_pause = True
+        while i < n_words:
+            w1 = filtered_words[i]
+            pair = [w1]
 
-            if is_max_len or has_punctuation or is_speech_pause:
-                chunks.append(current_chunk)
-                current_chunk = []
+            # Check if next word is spoken tightly together without pause (< 0.18s)
+            if i + 1 < n_words:
+                w2 = filtered_words[i + 1]
+                gap = w2["start"] - w1["end"]
+                # If short combined length and no gap, pair them
+                if gap < 0.18 and (len(w1["word"]) + len(w2["word"]) <= 12) and not w1["word"].endswith((".", "!", "?")):
+                    pair.append(w2)
+                    i += 1
 
-        if current_chunk:
-            chunks.append(current_chunk)
+            # Determine pulse timing
+            pulse_start = pair[0]["start"]
+            if i + 1 < n_words:
+                next_word_start = filtered_words[i + 1]["start"]
+                pulse_end = min(pair[-1]["end"] + 0.10, next_word_start)
+                if pulse_end <= pulse_start:
+                    pulse_end = pulse_start + 0.22
+            else:
+                pulse_end = min(clip_duration, pair[-1]["end"] + 0.25)
 
-        # Generate Continuous, Calibrated Dialogue Events
-        for c_idx, chunk in enumerate(chunks):
-            chunk_len = len(chunk)
-            chunk_end_time = chunk[-1]["end"]
-            next_chunk_start = chunks[c_idx + 1][0]["start"] if (c_idx < len(chunks) - 1) else clip_duration
+            # Build rendered text
+            word_strings = []
+            for item in pair:
+                raw_w = item["word"]
+                display_w = raw_w.upper() if all_caps else raw_w
+                clean_kw = raw_w.lower().strip("!?,.:;-")
+                emoji_str = f" {KEYWORD_EMOJIS[clean_kw]}" if (emojis_enabled and clean_kw in KEYWORD_EMOJIS) else ""
+                word_strings.append(f"{display_w}{emoji_str}")
 
-            for i, active_w in enumerate(chunk):
-                w_start = active_w["start"]
-                
-                if i < chunk_len - 1:
-                    w_end = max(w_start + 0.08, chunk[i + 1]["start"])
-                else:
-                    # Last word in chunk: hold cleanly until next chunk or speech pause
-                    w_end = max(active_w["end"], chunk_end_time)
-                    w_end = min(w_end + 0.15, next_chunk_start)
-                    if w_end <= w_start:
-                        w_end = w_start + 0.25
+            line_text = " ".join(word_strings)
+            # High-visibility kinetic highlight color
+            styled_text = r"{\c" + highlight_color + r"}" + line_text
 
-                # Build the styled chunk line
-                line_parts = []
-                for j, item in enumerate(chunk):
-                    word_str = item["word"]
-                    display_text = word_str.upper() if all_caps else word_str
-                    
-                    clean_kw = word_str.lower().strip("!?,.:;-")
-                    emoji_str = f" {KEYWORD_EMOJIS[clean_kw]}" if (emojis_enabled and clean_kw in KEYWORD_EMOJIS) else ""
+            start_str = format_ass_time(pulse_start)
+            end_str = format_ass_time(pulse_end)
+            ass_content += f"Dialogue: 0,{start_str},{end_str},Default,,0,0,0,,{styled_text}\n"
 
-                    if i == j:
-                        # ACTIVE SPOKEN WORD with Creator Animation
-                        anim_tag = self._get_active_word_effect(highlight_color, animation_type)
-                        line_parts.append(f"{anim_tag}{display_text}{emoji_str}" + r"{\r}")
-                    else:
-                        # INACTIVE PHRASE WORD
-                        line_parts.append(r"{\c" + primary_color + r"}" + f"{display_text}{emoji_str}")
-
-                rendered_line = " ".join(line_parts)
-                start_str = format_ass_time(w_start)
-                end_str = format_ass_time(w_end)
-                ass_content += f"Dialogue: 0,{start_str},{end_str},Default,,0,0,0,,{rendered_line}\n"
+            i += 1
 
         with open(output_ass_path, "w", encoding="utf-8") as f:
             f.write(ass_content)

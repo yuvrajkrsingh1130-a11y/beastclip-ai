@@ -21,8 +21,8 @@ class VideoRenderer:
         enable_seamless_loop: bool = True
     ) -> str:
         """
-        Renders an ultra-smooth 1080x1920 portrait Short with frame-accurate subtitle burn-in,
-        setpts=PTS-STARTPTS frame resetting, and studio mastered audio.
+        Renders a clean, high-performance 1080x1920 portrait Short with faststart streaming,
+        zero-lag subtitle burn-in, and studio audio mastering.
         """
         if not cam_box:
             cam_box = {"x": 0.22, "y": 0.72, "w": 0.42, "h": 0.55}
@@ -34,25 +34,13 @@ class VideoRenderer:
             if drive:
                 escaped_ass = f"{drive[0]}\\:{rest}"
 
-        # Studio-Grade Audio Mastering with zero PTS baseline
-        if enable_seamless_loop and duration > 1.0:
-            fade_out_start = max(0.5, round(duration - 0.05, 2))
-            audio_filter = (
-                "asetpts=PTS-STARTPTS,"
-                "aresample=async=1000,"
-                "volume=1.35,"
-                "compand=attacks=0.02:decays=0.1:points=-80/-80|-45/-22|-20/-8|0/-1:soft-knee=6,"
-                "aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo,"
-                f"afade=t=out:st={fade_out_start}:d=0.05"
-            )
-        else:
-            audio_filter = (
-                "asetpts=PTS-STARTPTS,"
-                "aresample=async=1000,"
-                "volume=1.35,"
-                "compand=attacks=0.02:decays=0.1:points=-80/-80|-45/-22|-20/-8|0/-1:soft-knee=6,"
-                "aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo"
-            )
+        # Clean, natural studio audio filter with strictly zero-based PTS
+        audio_filter = (
+            "asetpts=PTS-STARTPTS,"
+            "aresample=async=1000,"
+            "volume=1.15,"
+            "aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo"
+        )
 
         # Streamer webcam crop coordinates
         cam_cx = cam_box.get("x", 0.22)
@@ -68,36 +56,33 @@ class VideoRenderer:
         crop_screen_x = "iw*0.22" if cam_cx < 0.5 else "iw*0.04"
         crop_screen_y = "ih*0.04"
 
-        # Progress bar filter for Shorts retention boost
-        pbar_filter = f",drawbox=x=0:y=1910:w='(t/{max(1.0, duration)})*1080':h=10:color=gold@0.9:t=fill"
-
-        # Build Video Filter Graph with strictly zero-indexed PTS
+        # Build Video Filter Graph (Clean 9:16 portrait without unwanted overlays/lines)
         if layout == "split_screen":
             vf = (
                 f"[0:v]setpts=PTS-STARTPTS,crop=w={crop_cam_w}:h={crop_cam_h}:x='{crop_cam_x}':y='{crop_cam_y}',scale=1080:960:force_original_aspect_ratio=increase,crop=1080:960[top];"
                 f"[0:v]setpts=PTS-STARTPTS,crop=w={crop_screen_w}:h={crop_screen_h}:x='{crop_screen_x}':y='{crop_screen_y}',scale=1080:960:force_original_aspect_ratio=increase,crop=1080:960[bot];"
                 f"[top][bot]vstack=inputs=2[stacked];"
-                f"[stacked]subtitles='{escaped_ass}'{pbar_filter}[v]"
+                f"[stacked]subtitles='{escaped_ass}'[v]"
             )
         elif layout == "gaming_pip":
             vf = (
                 f"[0:v]setpts=PTS-STARTPTS,scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920[bg];"
                 f"[0:v]setpts=PTS-STARTPTS,crop=w={crop_cam_w}:h={crop_cam_h}:x='{crop_cam_x}':y='{crop_cam_y}',scale=380:440:force_original_aspect_ratio=increase,crop=380:440[cam];"
                 f"[bg][cam]overlay=W-w-36:48[merged];"
-                f"[merged]subtitles='{escaped_ass}'{pbar_filter}[v]"
+                f"[merged]subtitles='{escaped_ass}'[v]"
             )
         elif layout == "blurred_backdrop":
             vf = (
                 f"[0:v]setpts=PTS-STARTPTS,scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,gblur=sigma=28[bg];"
                 f"[0:v]setpts=PTS-STARTPTS,scale=1080:608:force_original_aspect_ratio=decrease[fg];"
                 f"[bg][fg]overlay=(W-w)/2:(H-h)/2[merged];"
-                f"[merged]subtitles='{escaped_ass}'{pbar_filter}[v]"
+                f"[merged]subtitles='{escaped_ass}'[v]"
             )
         else:
-            # Default / smart_face: Full-Bleed 1080x1920 Vertical
+            # Default / smart_face: Clean, pure, full-bleed 1080x1920 vertical portrait
             vf = (
                 f"[0:v]setpts=PTS-STARTPTS,scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,"
-                f"subtitles='{escaped_ass}'{pbar_filter}[v]"
+                f"subtitles='{escaped_ass}'[v]"
             )
 
         cmd = [
@@ -113,12 +98,12 @@ class VideoRenderer:
             "-map", "0:a?",
             "-af", audio_filter,
             "-c:v", "libx264",
-            "-preset", "ultrafast",
-            "-tune", "zerolatency",
-            "-threads", "0",
+            "-pix_fmt", "yuv420p",
+            "-preset", "veryfast",
             "-crf", "20",
             "-c:a", "aac",
-            "-b:a", "256k",
+            "-b:a", "192k",
+            "-movflags", "+faststart",
             str(output_clip_path)
         ]
 
@@ -126,7 +111,6 @@ class VideoRenderer:
         res = subprocess.run(cmd, cwd=str(BASE_DIR), capture_output=True, text=True)
         if res.returncode != 0:
             print(f"[VideoRenderer] Main render notice: {res.stderr[:200]}")
-            # Clean fallback full vertical
             fallback_vf = (
                 f"[0:v]setpts=PTS-STARTPTS,scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,"
                 f"subtitles='{escaped_ass}'[v]"
@@ -140,8 +124,13 @@ class VideoRenderer:
                 "-filter_complex", fallback_vf,
                 "-map", "[v]", "-map", "0:a?",
                 "-af", audio_filter,
-                "-c:v", "libx264", "-preset", "ultrafast", "-crf", "22",
-                "-c:a", "aac", "-b:a", "192k",
+                "-c:v", "libx264",
+                "-pix_fmt", "yuv420p",
+                "-preset", "veryfast",
+                "-crf", "22",
+                "-c:a", "aac",
+                "-b:a", "192k",
+                "-movflags", "+faststart",
                 str(output_clip_path)
             ]
             subprocess.run(fallback_cmd, cwd=str(BASE_DIR), check=True)
