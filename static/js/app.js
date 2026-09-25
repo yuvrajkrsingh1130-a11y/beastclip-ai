@@ -40,13 +40,151 @@ function initPresets() {
     document.querySelectorAll(".preset-btn").forEach(btn => {
         btn.addEventListener("click", () => {
             const key = btn.getAttribute("data-preset");
-            const preset = PRESET_CREATOR_URLS[key];
-            if (preset) {
-                document.getElementById("videoUrlInput").value = preset.url;
-                document.getElementById("creatorCreditInput").value = preset.tag;
-            }
+            selectStreamerPreset(key, btn);
         });
     });
+}
+
+async function selectStreamerPreset(key, btnElement) {
+    try {
+        // Highlight active preset button
+        document.querySelectorAll(".preset-btn").forEach(b => {
+            b.classList.remove("ring-2", "ring-indigo-500", "bg-indigo-600/30", "border-indigo-400");
+        });
+        if (btnElement) {
+            btnElement.classList.add("ring-2", "ring-indigo-500", "bg-indigo-600/30", "border-indigo-400");
+        }
+
+        // Fetch streamer metadata + top viral streams from backend
+        const res = await fetch(`/api/streamer-preset/${key}`);
+        if (!res.ok) throw new Error("Could not fetch streamer preset");
+        const data = await res.json();
+
+        // 1. Auto-fill Creator Credit Handle
+        const creditInput = document.getElementById("creatorCreditInput");
+        if (creditInput && data.handle) {
+            creditInput.value = data.handle;
+        }
+
+        // 2. Auto-select Recommended Subtitle Style
+        if (data.recommended_style) {
+            const styleRadio = document.querySelector(`input[name="subtitleStyle"][value="${data.recommended_style}"]`);
+            if (styleRadio) {
+                styleRadio.checked = true;
+                styleRadio.dispatchEvent(new Event("change"));
+            }
+        }
+
+        // 3. Auto-select Recommended Layout (Split Screen)
+        if (data.recommended_layout) {
+            const layoutRadio = document.querySelector(`input[name="layout"][value="${data.recommended_layout}"]`);
+            if (layoutRadio) {
+                layoutRadio.checked = true;
+                layoutRadio.dispatchEvent(new Event("change"));
+            }
+        }
+
+        // 4. Auto-populate URL and Video Preview with the #1 Top Viral Stream
+        const bestVid = data.best_video || (data.videos && data.videos[0]);
+        if (bestVid) {
+            applyStreamerVideo(bestVid, data.handle);
+        }
+
+        // 5. Render Stream Selection Chips Strip
+        renderStreamerStreamsList(data);
+
+        showToast(`⚡ Loaded top clip-ready stream for ${data.name}!`);
+
+    } catch (e) {
+        console.error("Preset load error:", e);
+        const fallback = PRESET_CREATOR_URLS[key];
+        if (fallback) {
+            document.getElementById("videoUrlInput").value = fallback.url;
+            document.getElementById("creatorCreditInput").value = fallback.tag;
+            showToast(`Loaded ${key} preset`);
+        }
+    }
+}
+
+function applyStreamerVideo(vid, creditHandle) {
+    const urlInput = document.getElementById("videoUrlInput");
+    if (urlInput) {
+        urlInput.value = vid.url;
+    }
+
+    // Update live video preview card
+    const infoCard = document.getElementById("videoInfoCard");
+    const thumbImg = document.getElementById("videoThumbImg");
+    const titleLabel = document.getElementById("videoTitleLabel");
+    const metaLabel = document.getElementById("videoMetaLabel");
+
+    if (infoCard && thumbImg && titleLabel && metaLabel) {
+        thumbImg.src = vid.thumbnail || `https://i.ytimg.com/vi/${vid.id}/hqdefault.jpg`;
+        titleLabel.textContent = vid.title || "Stream Highlight";
+        titleLabel.title = vid.title || "";
+        metaLabel.textContent = `${vid.duration || 'Stream'} • ${creditHandle || '@Streamer'} • ${vid.badge || 'Viral Pick'}`;
+        infoCard.classList.remove("hidden");
+    }
+}
+
+function renderStreamerStreamsList(data) {
+    const container = document.getElementById("streamerStreamsContainer");
+    const list = document.getElementById("streamerStreamsList");
+    const heading = document.getElementById("streamerStreamsHeading");
+    if (!container || !list) return;
+
+    if (heading) {
+        heading.innerHTML = `<i data-lucide="flame" class="w-3.5 h-3.5 text-yellow-400"></i> Top Viral Streams for ${data.name}`;
+    }
+
+    list.innerHTML = "";
+    (data.videos || []).forEach((vid, idx) => {
+        const isSelected = (idx === 0);
+        const item = document.createElement("div");
+        item.className = `stream-chip flex items-center gap-2.5 p-2 rounded-lg bg-black/40 hover:bg-indigo-600/20 border ${isSelected ? 'border-indigo-500 bg-indigo-950/40' : 'border-white/5'} cursor-pointer transition text-left`;
+        item.innerHTML = `
+            <img src="${vid.thumbnail || 'https://i.ytimg.com/vi/' + vid.id + '/hqdefault.jpg'}" class="w-14 h-9 object-cover rounded flex-shrink-0" />
+            <div class="min-w-0 flex-1">
+                <div class="text-[11px] font-bold text-white truncate">${vid.title}</div>
+                <div class="text-[9px] text-gray-400 flex items-center gap-1.5 mt-0.5">
+                    <span class="text-yellow-400 font-semibold">${vid.badge || 'Viral'}</span>
+                    <span>•</span>
+                    <span>${vid.duration || 'Stream'}</span>
+                </div>
+            </div>
+            <button type="button" class="px-2 py-1 rounded ${isSelected ? 'bg-indigo-600 text-white' : 'bg-white/5 text-gray-300 hover:bg-indigo-600/40 hover:text-white'} text-[10px] font-bold transition flex-shrink-0">
+                ${isSelected ? 'Active' : 'Clip This'}
+            </button>
+        `;
+        item.addEventListener("click", () => {
+            // Unhighlight all other chips
+            list.querySelectorAll(".stream-chip").forEach(c => {
+                c.classList.remove("border-indigo-500", "bg-indigo-950/40");
+                c.classList.add("border-white/5");
+                const b = c.querySelector("button");
+                if (b) {
+                    b.className = "px-2 py-1 rounded bg-white/5 text-gray-300 hover:bg-indigo-600/40 hover:text-white text-[10px] font-bold transition flex-shrink-0";
+                    b.textContent = "Clip This";
+                }
+            });
+
+            // Highlight clicked chip
+            item.classList.remove("border-white/5");
+            item.classList.add("border-indigo-500", "bg-indigo-950/40");
+            const btn = item.querySelector("button");
+            if (btn) {
+                btn.className = "px-2 py-1 rounded bg-indigo-600 text-white text-[10px] font-bold transition flex-shrink-0";
+                btn.textContent = "Active";
+            }
+
+            applyStreamerVideo(vid, data.handle);
+            showToast(`Switched stream: ${vid.title.substring(0, 28)}...`);
+        });
+        list.appendChild(item);
+    });
+
+    container.classList.remove("hidden");
+    lucide.createIcons();
 }
 
 function initEventListeners() {

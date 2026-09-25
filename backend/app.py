@@ -117,6 +117,31 @@ def get_presets():
         ]
     }
 
+@app.get("/api/streamer-preset/{streamer_id}")
+def get_streamer_preset_feed(streamer_id: str):
+    """
+    Returns curated top viral videos and channel metadata for a streamer preset.
+    Instantly auto-fills URL, credit, subtitle styling, and layout.
+    """
+    preset = CREATOR_PRESETS.get(streamer_id.lower())
+    if not preset:
+        raise HTTPException(status_code=404, detail="Streamer preset not found")
+
+    videos = list(preset.get("featured_videos", []))
+    best_video = videos[0] if videos else None
+
+    return {
+        "id": streamer_id.lower(),
+        "name": preset["name"],
+        "handle": preset["credit_tag"],
+        "channel_url": preset["channel_url"],
+        "recommended_style": preset.get("recommended_style", "hormozi"),
+        "recommended_layout": preset.get("recommended_layout", "split_screen"),
+        "tags": preset.get("tags", []),
+        "videos": videos,
+        "best_video": best_video
+    }
+
 @app.post("/api/extract-info")
 def extract_video_info(req: dict):
     url = req.get("url")

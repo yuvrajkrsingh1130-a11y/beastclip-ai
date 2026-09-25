@@ -127,6 +127,20 @@
                                     </div>
                                 </button>
                             </div>
+
+                            <!-- Streamer Quick-Select Stream Strip (Appears when preset clicked) -->
+                            <div id="streamerStreamsContainer" class="hidden mt-3 p-3 rounded-xl bg-gradient-to-r from-indigo-950/40 via-purple-950/30 to-indigo-950/40 border border-indigo-500/30 space-y-2.5">
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="font-bold text-indigo-300 flex items-center gap-1.5" id="streamerStreamsHeading">
+                                        <i data-lucide="flame" class="w-3.5 h-3.5 text-yellow-400"></i>
+                                        Top Viral Streams For Clipping
+                                    </span>
+                                    <span class="text-[10px] text-gray-400 font-mono">1-Click Auto-Fill</span>
+                                </div>
+                                <div class="grid grid-cols-1 gap-1.5" id="streamerStreamsList">
+                                    <!-- Populated dynamically -->
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Video Preview Metadata (Hidden by default) -->
@@ -1069,7 +1083,7 @@
     </footer>
 
     <!-- App Logic Script -->
-    <script src="/static/js/app.js?v=7.0"></script>
+    <script src="/static/js/app.js?v=8.0"></script>
     <script>
         lucide.createIcons();
     </script>
