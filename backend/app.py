@@ -271,6 +271,13 @@ def process_single_clip_task(
         "description": meta["description"],
         "tags": meta["tags"],
         "tags_string": meta["tags_string"],
+        "pinned_comment": meta.get("pinned_comment", ""),
+        "viral_hooks": meta.get("viral_hooks", []),
+        "hashtag_clusters": meta.get("hashtag_clusters", {}),
+        "virality_breakdown": meta.get("virality_breakdown", {}),
+        "recommended_sound": meta.get("recommended_sound", ""),
+        "optimal_post_time": meta.get("optimal_post_time", ""),
+        "full_viral_package": meta.get("full_viral_package", ""),
         "creator_credit": credit_tag,
         "video_url": f"/output/{out_clip_filename}",
         "thumbnail_url": f"/output/{thumb_filename}"
@@ -531,6 +538,10 @@ def run_multi_video_compilation_pipeline(job_id: str, req: MultiVideoCompilation
             "description": comp_meta["description"],
             "tags": comp_meta["tags"],
             "tags_string": comp_meta["tags_string"],
+            "pinned_comment": comp_meta.get("pinned_comment", ""),
+            "hashtag_clusters": comp_meta.get("hashtag_clusters", {}),
+            "virality_breakdown": comp_meta.get("virality_breakdown", {}),
+            "full_viral_package": comp_meta.get("full_viral_package", ""),
             "creator_credit": f"@{creator_names[0].replace(' ', '')}" if creator_names else "@Creator",
             "video_url": f"/output/{comp_filename}",
             "thumbnail_url": f"/output/{thumb_filename}",
@@ -761,6 +772,7 @@ def update_clip_metadata(req: dict):
     new_title = req.get("title")
     new_description = req.get("description")
     new_tags = req.get("tags")
+    new_pinned_comment = req.get("pinned_comment")
 
     if not clip_id:
         raise HTTPException(status_code=400, detail="clip_id is required")
@@ -775,6 +787,8 @@ def update_clip_metadata(req: dict):
                     clip["title"] = new_title.strip()
                 if new_description is not None:
                     clip["description"] = new_description.strip()
+                if new_pinned_comment is not None:
+                    clip["pinned_comment"] = new_pinned_comment.strip()
                 if new_tags is not None:
                     if isinstance(new_tags, list):
                         clip["tags"] = new_tags

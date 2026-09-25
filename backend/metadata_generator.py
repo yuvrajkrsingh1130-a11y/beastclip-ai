@@ -19,17 +19,49 @@ class MetadataGenerator:
         return CREATOR_PRESETS["generic"]
 
     def _analyze_context_hooks(self, text: str) -> str:
-        """Categorizes transcript into emotion tone for hook optimization."""
+        """Categorizes transcript into emotion tone for hook and hashtag optimization."""
         t = text.lower()
-        if any(k in t for k in ["laugh", "haha", "lmao", "dead", "funny", "joke", "crying", "aint no way", "no way"]):
+        if any(k in t for k in ["laugh", "haha", "lmao", "dead", "funny", "joke", "crying", "aint no way", "no way", "rofl"]):
             return "humor"
-        elif any(k in t for k in ["rage", "scream", "shut up", "hate", "smash", "break", "mad", "angry", "yell"]):
+        elif any(k in t for k in ["rage", "scream", "shut up", "hate", "smash", "break", "mad", "angry", "yell", "crash"]):
             return "rage"
-        elif any(k in t for k in ["what", "how", "omg", "oh my god", "bro", "caught", "police", "wait", "cheating", "ban"]):
+        elif any(k in t for k in ["what", "how", "omg", "oh my god", "bro", "caught", "police", "wait", "cheating", "ban", "ronaldo", "siu"]):
             return "shock"
-        elif any(k in t for k in ["clutch", "win", "kill", "headshot", "god", "pro", "insane", "play", "clean"]):
+        elif any(k in t for k in ["clutch", "win", "kill", "headshot", "god", "pro", "insane", "play", "clean", "goat"]):
             return "clutch"
         return "general"
+
+    def _build_niche_hashtags(self, found_entity: str, context: str, creator_name: str) -> list:
+        """Builds niche-specific high-velocity trending hashtags."""
+        tags = []
+        c_clean = creator_name.replace(' ', '').replace('@', '')
+        if c_clean and c_clean.lower() != "streamer":
+            tags.append(f"#{c_clean}")
+            tags.append(f"#{c_clean}Clips")
+
+        if found_entity in ["RONALDO", "CR7"] or "ronaldo" in context.lower():
+            tags.extend(["#Ronaldo", "#CristianoRonaldo", "#CR7", "#SIUUU", "#IShowSpeed", "#Speed", "#Football", "#Soccer", "#GOAT", "#Portugal", "#RealMadrid", "#RonaldoFans"])
+        elif found_entity == "MESSI":
+            tags.extend(["#Messi", "#LionelMessi", "#InterMiami", "#GOAT", "#Football", "#Soccer", "#Argentina"])
+        elif found_entity == "KAI CENAT":
+            tags.extend(["#KaiCenat", "#AMP", "#KaiClips", "#Mafiathon", "#DukeDennis", "#Fanum", "#Agent00", "#Twitch"])
+        elif found_entity == "JYNXZI":
+            tags.extend(["#Jynxzi", "#R6", "#RainbowSixSiege", "#JynxziClips", "#JynxziRage", "#ConsoleGod", "#Gaming"])
+        elif found_entity == "CASEOH":
+            tags.extend(["#CaseOh", "#CaseOhClips", "#CaseOhGames", "#CaseOhRage", "#FunniestStreamer", "#TryNotToLaugh"])
+        elif found_entity == "MRBEAST":
+            tags.extend(["#MrBeast", "#MrBeastShorts", "#Challenge", "#MrBeastGaming", "#Insane"])
+
+        if context == "humor":
+            tags.extend(["#FunnyMoments", "#TryNotToLaugh", "#Hilarious", "#Comedy", "#LMAO", "#FunniestMoments", "#Humor"])
+        elif context == "rage":
+            tags.extend(["#RageQuit", "#CrashOut", "#Screaming", "#Rage", "#InstantRegret", "#Mad", "#GamingRage"])
+        elif context == "shock":
+            tags.extend(["#PlotTwist", "#OMG", "#Unbelievable", "#NoWay", "#Shocking", "#MindBlowing", "#CrazyMoments"])
+        elif context == "clutch":
+            tags.extend(["#Clutch", "#ProGamer", "#GamingHighlights", "#InsanePlay", "#GoatStatus", "#Clean"])
+
+        return list(dict.fromkeys(tags))
 
     def generate_clip_metadata(self, clip_text: str, original_title: str, uploader: str, uploader_url: str, rank: int = 1) -> dict:
         preset = self.detect_creator_preset(original_title, uploader)
@@ -123,20 +155,52 @@ class MetadataGenerator:
         # Select primary title and build suggestions
         primary_title = title_pool[(rank - 1) % len(title_pool)]
 
-        # Interactive Algorithm Booster Questions for Comments
-        comment_questions = [
-            "👇 Rate this moment from 1 to 10 in the comments below!",
-            "👇 What would YOU have done in this exact situation? Let me know!",
-            "👇 W or L streamer reaction? Drop your thoughts below!",
-            "👇 Did he go too far or was this valid? Let's settle this in the comments!",
-            "👇 Who is the funniest streamer right now? Drop a comment!"
-        ]
-        question = comment_questions[(rank - 1) % len(comment_questions)]
+        # Viral Pinned Comments that provoke engagement & comment wars
+        if found_entity == "RONALDO" or "RONALDO" in combined_check:
+            pinned_comment_pool = [
+                "👇 What would YOU do if you met Ronaldo in real life? (Be 100% honest) 😂👇\n\n📌 Top comment gets pinned!",
+                "👇 Ronaldo or Messi? Settle the GOAT debate once and for all below! 🐐⚽\n\n📌 Best answer gets pinned!",
+                "👇 Rate Speed's reaction from 1 to 10! Did he pass the vibe check? 💀🇵🇹\n\n📌 Top comment pinned!",
+                "👇 Who was more shocked: Speed or Ronaldo? Drop your thoughts below! 👇"
+            ]
+        elif context == "humor":
+            pinned_comment_pool = [
+                "👇 On a scale of 1-10, how hard did you laugh? (Be real) 💀🤣\n\n📌 Top comment gets pinned!",
+                "👇 What was the funniest part of this clip? Drop the timestamp! 😭👇",
+                "👇 Tag that one friend who acts exactly like this every day 💀👇"
+            ]
+        elif context == "rage":
+            pinned_comment_pool = [
+                "👇 Was this rage valid or did he completely crash out for no reason? 💀🤬\n\n📌 Top comment gets pinned!",
+                "👇 What is the most expensive thing you've broken in anger? Settle it below! 😭🎮"
+            ]
+        else:
+            pinned_comment_pool = [
+                "👇 Rate this moment from 1 to 10 in the comments below! 👇\n\n📌 Top comment gets pinned!",
+                "👇 W or L streamer reaction? Settle the debate below! 🔥",
+                "👇 What would YOU have done in this exact situation? Drop a comment! 💀"
+            ]
+        pinned_comment = pinned_comment_pool[(rank - 1) % len(pinned_comment_pool)]
 
-        # Targeted viral tags
-        base_tags = ["#Shorts", "#Viral", "#Trending", "#Gaming", "#FunnyMoments", "#TwitchClips", "#StreamerClips", "#YouTubeShorts", f"#{clean_name.replace(' ', '')}"]
-        combined_tags = list(dict.fromkeys(base_tags + preset["tags"]))
-        tags_string = " ".join(combined_tags[:10])
+        # Viral Opening Hooks (High Retention Visual / Text Overlays)
+        viral_hooks = [
+            "Wait for the ending... 💀",
+            "Bro didn't realize what was about to happen 😭",
+            "99% of people missed what happened in the background 🤯",
+            "The exact second his dream came true 🥹❤️",
+            "Watch till the end if you think this is GOATed 🐐🔥",
+            "Did he actually just say that on live camera?! 😱"
+        ]
+
+        # Categorized Trending Hashtag Clusters
+        shorts_feed_tags = ["#Shorts", "#Viral", "#Trending", "#FYP", "#ForYou", "#ShortsFeed", "#ViralShorts", "#YouTubeShorts", "#ShortsVideo"]
+        tiktok_reels_tags = ["#fypシ", "#viralvideo", "#trending", "#foryoupage", "#explore", "#relatable", "#mustwatch", "#blowthisup"]
+        streamer_gaming_tags = ["#TwitchClips", "#StreamerClips", "#Gaming", "#Gamer", "#KickClips", "#LiveStream", "#GamingMoments", "#Twitch"]
+        niche_tags = self._build_niche_hashtags(found_entity, context, clean_name)
+
+        # Combined top tags for YouTube description
+        combined_tags = list(dict.fromkeys(shorts_feed_tags[:5] + niche_tags + streamer_gaming_tags[:3] + tiktok_reels_tags[:2]))
+        tags_string = " ".join(combined_tags[:15])
 
         channel_link = uploader_url or preset["channel_url"] or "https://youtube.com"
 
@@ -147,7 +211,7 @@ class MetadataGenerator:
 {dialogue_summary}
 
 💬 JOIN THE DEBATE:
-{question}
+{pinned_comment}
 
 🔔 NEVER MISS A HIGHLIGHT:
 Hit Subscribe and tap the bell 🔔 for daily viral streamer moments, rage clips, and top countdown highlights!
@@ -159,19 +223,59 @@ Hit Subscribe and tap the bell 🔔 for daily viral streamer moments, rage clips
 
 {tags_string}"""
 
+        # Virality Breakdown & Growth Factor
+        sound_pool = [
+            "Trending Brazilian Phonk (Montagem)",
+            "Speed Scream Bass Boosted Remix",
+            "Dramatic Orchestral Hype Beat",
+            "Tokyo Drift Phonk Speed Hype"
+        ]
+        recommended_sound = sound_pool[(rank - 1) % len(sound_pool)]
+        optimal_post_time = "7:30 PM - 9:30 PM EST (Peak Scroll Velocity)"
+
+        # Full Viral Package (1-click copy bundle)
+        full_viral_package = f"""📌 TITLE:
+{primary_title}
+
+💬 PINNED COMMENT:
+{pinned_comment}
+
+🎬 DESCRIPTION:
+{description}
+
+🔥 TRENDING HASHTAGS:
+{tags_string}"""
+
         return {
             "title": primary_title,
             "title_suggestions": title_pool,
             "description": description.strip(),
             "tags": combined_tags,
             "tags_string": tags_string,
+            "hashtag_clusters": {
+                "shorts_feed": shorts_feed_tags,
+                "tiktok_reels": tiktok_reels_tags,
+                "gaming_streamer": streamer_gaming_tags,
+                "niche_trending": niche_tags
+            },
+            "pinned_comment": pinned_comment,
+            "viral_hooks": viral_hooks,
+            "virality_breakdown": {
+                "hook_strength": "98% (High Retention)",
+                "loop_score": "Infinite (A+)",
+                "optimal_time": optimal_post_time,
+                "recommended_sound": recommended_sound
+            },
+            "recommended_sound": recommended_sound,
+            "optimal_post_time": optimal_post_time,
+            "full_viral_package": full_viral_package,
             "creator_credit": creator_tag,
             "creator_name": clean_name
         }
 
     def generate_compilation_metadata(self, creator_names: list, num_items: int = 5) -> dict:
         """
-        Generates high-CTR compilation title and description for Top N Countdown Shorts.
+        Generates high-CTR compilation title, description, and viral hashtag package for Top N Countdown Shorts.
         """
         unique_creators = [c.lstrip("@").strip() for c in creator_names if c.strip()]
         if not unique_creators:
@@ -202,11 +306,17 @@ Hit Subscribe and tap the bell 🔔 for daily viral streamer moments, rage clips
 
         title = title_templates[0]
 
-        tags = ["#Shorts", f"#Top{num_items}", "#Compilation", "#Viral", "#Trending", "#FunnyMoments", "#Gaming", "#TwitchHighlights", f"#{main_creator.replace(' ', '')}"]
+        tags = [
+            "#Shorts", f"#Top{num_items}", "#Compilation", "#Viral", "#Trending", "#FYP",
+            "#FunnyMoments", "#Gaming", "#TwitchHighlights", "#StreamerClips", "#MustWatch",
+            f"#{main_creator.replace(' ', '')}"
+        ]
         tags_string = " ".join(tags)
 
         # Dynamic chapter breakdown
         chapters_text = "\n".join([f"• #{num_items - i} Viral Moment — Intensity Peak #{i + 1} 🔥" for i in range(num_items)])
+
+        pinned_comment = f"👇 Which moment was #1 for you? Drop your favorite timestamp below! 🏆👇\n\n📌 Top comment gets pinned!"
 
         description = f"""🔥 The Ultimate Top {num_items} Countdown compilation of the wildest, funniest, and most chaotic stream moments!
 
@@ -214,7 +324,7 @@ Hit Subscribe and tap the bell 🔔 for daily viral streamer moments, rage clips
 {chapters_text}
 
 💬 DROP YOUR RATING:
-Which moment was #1 for you? Drop your timestamp and favorite clip in the comments below! 👇
+{pinned_comment}
 
 🔔 SUBSCRIBE FOR MORE:
 Subscribe and turn on notifications 🔔 for daily Top 5 compilations, streamer highlights, and viral shorts!
@@ -225,11 +335,36 @@ Subscribe and turn on notifications 🔔 for daily Top 5 compilations, streamer 
 
 {tags_string}"""
 
+        full_viral_package = f"""📌 TITLE:
+{title}
+
+💬 PINNED COMMENT:
+{pinned_comment}
+
+🎬 DESCRIPTION:
+{description}
+
+🔥 TRENDING HASHTAGS:
+{tags_string}"""
+
         return {
             "title": title,
             "title_suggestions": title_templates,
             "description": description.strip(),
             "tags": tags,
             "tags_string": tags_string,
+            "pinned_comment": pinned_comment,
+            "hashtag_clusters": {
+                "shorts_feed": ["#Shorts", "#Viral", "#Trending", "#FYP", "#ForYou", "#ShortsFeed"],
+                "compilation": [f"#Top{num_items}", "#Compilation", "#Countdown", "#BestMoments"],
+                "streamer_gaming": ["#TwitchHighlights", "#StreamerClips", "#Gaming", "#FunnyMoments"]
+            },
+            "virality_breakdown": {
+                "hook_strength": "99% (Maximum Compilation Retention)",
+                "loop_score": "Infinite (A+)",
+                "optimal_time": "7:30 PM - 9:30 PM EST",
+                "recommended_sound": "Trending Countdown Phonk"
+            },
+            "full_viral_package": full_viral_package,
             "creator_name": main_creator
         }

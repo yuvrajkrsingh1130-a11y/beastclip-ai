@@ -143,30 +143,31 @@ CREATOR_PRESETS = {
         "name": "IShowSpeed",
         "channel_url": "https://www.youtube.com/@IShowSpeed",
         "credit_tag": "@IShowSpeed",
-        "tags": ["#ishowspeed", "#speed", "#speedshorts", "#gaming", "#funny", "#streamer"]
+        "tags": ["#Shorts", "#IShowSpeed", "#Speed", "#Ronaldo", "#CristianoRonaldo", "#CR7", "#SIUUU", "#Viral", "#Trending", "#FYP", "#Football", "#TwitchClips", "#FunnyMoments", "#SpeedShorts"]
     },
     "kaicenat": {
         "name": "Kai Cenat",
         "channel_url": "https://www.youtube.com/@KaiCenat",
         "credit_tag": "@KaiCenat",
-        "tags": ["#kaicenat", "#amp", "#kaiclips", "#streamer", "#twitch", "#funny"]
+        "tags": ["#Shorts", "#KaiCenat", "#AMP", "#KaiClips", "#Mafiathon", "#Viral", "#Trending", "#FYP", "#Twitch", "#FunnyMoments", "#StreamerClips"]
     },
     "jynxzi": {
         "name": "Jynxzi",
         "channel_url": "https://www.youtube.com/@Jynxzi",
         "credit_tag": "@Jynxzi",
-        "tags": ["#jynxzi", "#r6", "#rainbowsix", "#jynxziclips", "#rage", "#gaming"]
+        "tags": ["#Shorts", "#Jynxzi", "#R6", "#RainbowSix", "#JynxziClips", "#JynxziRage", "#Viral", "#Trending", "#Gaming", "#FunnyMoments"]
     },
     "caseoh": {
         "name": "CaseOh",
         "channel_url": "https://www.youtube.com/@CaseOh",
         "credit_tag": "@CaseOh",
-        "tags": ["#caseoh", "#caseohclips", "#caseohgames", "#twitch", "#funny", "#rage"]
+        "tags": ["#Shorts", "#CaseOh", "#CaseOhClips", "#CaseOhGames", "#CaseOhRage", "#Viral", "#Trending", "#FYP", "#FunnyMoments", "#TryNotToLaugh"]
     },
     "generic": {
         "name": "Original Creator",
         "channel_url": "",
         "credit_tag": "Original Creator",
-        "tags": ["#shorts", "#viral", "#gaming", "#trending", "#fyp", "#funny"]
+        "tags": ["#Shorts", "#Viral", "#Trending", "#FYP", "#ForYou", "#ShortsFeed", "#Gaming", "#FunnyMoments", "#TwitchClips", "#Explore"]
     }
 }
+

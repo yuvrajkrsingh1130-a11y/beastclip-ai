@@ -82,6 +82,31 @@ function initEventListeners() {
     document.getElementById("editTitleInput")?.addEventListener("input", (e) => {
         document.getElementById("editTitleCharCount").innerText = `${e.target.value.length}/100`;
     });
+    document.getElementById("copyPinnedCommentBtn")?.addEventListener("click", () => {
+        const val = document.getElementById("editPinnedCommentInput")?.value || "";
+        if (val) {
+            navigator.clipboard.writeText(val).then(() => showToast("Pinned Comment Copied!"));
+        }
+    });
+    document.getElementById("copyFullPackageModalBtn")?.addEventListener("click", () => {
+        if (!activeEditClipId) return;
+        copyClipField(activeEditClipId, "viral_package");
+    });
+    document.querySelectorAll(".trending-tag-pill").forEach(pill => {
+        pill.addEventListener("click", () => {
+            const tag = pill.getAttribute("data-tag");
+            const tagsInput = document.getElementById("editTagsInput");
+            if (tag && tagsInput) {
+                const current = tagsInput.value.trim();
+                if (!current.includes(tag)) {
+                    tagsInput.value = current ? `${current} ${tag}` : tag;
+                    showToast(`Added ${tag}`);
+                } else {
+                    showToast(`${tag} already added`);
+                }
+            }
+        });
+    });
 
     // YouTube Auth Modal triggers
     document.getElementById("ytChannelBadge").addEventListener("click", () => {
@@ -711,6 +736,27 @@ function renderGeneratedClips(clips) {
                  #${clip.rank} Viral Highlight
                </span>`;
 
+        const pinnedCommentHtml = clip.pinned_comment ? `
+            <div class="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 space-y-1">
+                <div class="flex items-center justify-between text-[10px]">
+                    <span class="font-bold text-indigo-300 flex items-center gap-1">
+                        <i data-lucide="pin" class="w-3 h-3 text-indigo-400"></i> Viral Pinned Comment (Algorithm Boost):
+                    </span>
+                    <button onclick="copyClipField('${clip.clip_id}', 'pinned_comment')" class="px-1.5 py-0.5 rounded bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-200 border border-indigo-500/30 transition flex items-center gap-1 text-[9px]">
+                        <i data-lucide="copy" class="w-2.5 h-2.5"></i> Copy
+                    </button>
+                </div>
+                <p class="text-[10px] text-gray-300 italic line-clamp-2">${escapeHtml(clip.pinned_comment)}</p>
+            </div>
+        ` : '';
+
+        const soundBadge = clip.recommended_sound ? `
+            <div class="flex items-center justify-between text-[10px] text-gray-400 bg-black/30 px-2 py-1 rounded-lg border border-white/5">
+                <span class="flex items-center gap-1"><i data-lucide="music" class="w-3 h-3 text-pink-400"></i> Audio: ${escapeHtml(clip.recommended_sound)}</span>
+                <span class="text-amber-400 font-mono text-[9px]">🔥 Peak: 7:30 PM</span>
+            </div>
+        ` : '';
+
         card.innerHTML = `
             <!-- Top Badges -->
             <div class="flex items-center justify-between">
@@ -732,22 +778,27 @@ function renderGeneratedClips(clips) {
             </div>
 
             <!-- Title & Hook Snippet with Click-to-Edit -->
-            <div class="space-y-1">
+            <div class="space-y-1.5">
                 <div class="flex items-start justify-between gap-2">
                     <h4 id="title_text_${clip.clip_id}" class="text-xs font-bold text-white leading-snug line-clamp-2 cursor-pointer hover:text-yellow-300 transition" onclick="openEditMetadataModal('${clip.clip_id}')" title="Click to edit title & description">
                         ${escapeHtml(clip.title)}
                     </h4>
-                    <button onclick="openEditMetadataModal('${clip.clip_id}')" class="p-1 rounded-lg bg-yellow-500/10 hover:bg-yellow-500/25 border border-yellow-500/30 text-yellow-400 transition flex-shrink-0" title="Edit Title & Description">
+                    <button onclick="openEditMetadataModal('${clip.clip_id}')" class="p-1 rounded-lg bg-yellow-500/10 hover:bg-yellow-500/25 border border-yellow-500/30 text-yellow-400 transition flex-shrink-0" title="Edit Title, Tags & Comments">
                         <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
                     </button>
                 </div>
                 <p class="text-[10px] text-gray-400 italic line-clamp-2">"${escapeHtml(clip.transcript)}"</p>
+                ${soundBadge}
+                ${pinnedCommentHtml}
             </div>
 
             <!-- Action Buttons Grid -->
             <div class="grid grid-cols-2 gap-2 mt-auto pt-2 border-t border-white/5">
-                <button onclick="openEditMetadataModal('${clip.clip_id}')" class="py-2 px-2 bg-yellow-500/15 hover:bg-yellow-500/30 border border-yellow-500/40 rounded-lg text-[11px] font-bold text-yellow-300 flex items-center justify-center gap-1.5 transition col-span-2 shadow-sm">
-                    <i data-lucide="edit-3" class="w-3.5 h-3.5 text-yellow-400"></i> Edit Title & Description
+                <button onclick="openEditMetadataModal('${clip.clip_id}')" class="py-2 px-2 bg-yellow-500/15 hover:bg-yellow-500/30 border border-yellow-500/40 rounded-lg text-[11px] font-bold text-yellow-300 flex items-center justify-center gap-1.5 transition shadow-sm">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5 text-yellow-400"></i> Edit Viral Metadata
+                </button>
+                <button onclick="copyClipField('${clip.clip_id}', 'viral_package')" class="py-2 px-2 bg-indigo-600/20 hover:bg-indigo-600/35 border border-indigo-500/30 rounded-lg text-[11px] font-bold text-indigo-200 flex items-center justify-center gap-1.5 transition shadow-sm">
+                    <i data-lucide="clipboard-copy" class="w-3.5 h-3.5 text-indigo-400"></i> Copy Viral Bundle
                 </button>
                 <button onclick="copyClipField('${clip.clip_id}', 'title')" class="py-1.5 px-2 bg-white/5 hover:bg-white/10 rounded-lg text-[11px] font-medium text-gray-300 flex items-center justify-center gap-1.5 transition">
                     <i data-lucide="copy" class="w-3.5 h-3.5 text-indigo-400"></i> Copy Title
@@ -755,8 +806,11 @@ function renderGeneratedClips(clips) {
                 <button onclick="copyClipField('${clip.clip_id}', 'tags')" class="py-1.5 px-2 bg-white/5 hover:bg-white/10 rounded-lg text-[11px] font-medium text-gray-300 flex items-center justify-center gap-1.5 transition">
                     <i data-lucide="hash" class="w-3.5 h-3.5 text-pink-400"></i> Copy Tags
                 </button>
-                <button onclick="copyClipField('${clip.clip_id}', 'description')" class="py-1.5 px-2 bg-white/5 hover:bg-white/10 rounded-lg text-[11px] font-medium text-gray-300 flex items-center justify-center gap-1.5 transition col-span-2">
-                    <i data-lucide="file-text" class="w-3.5 h-3.5 text-yellow-400"></i> Copy Description + Credits
+                <button onclick="copyClipField('${clip.clip_id}', 'pinned_comment')" class="py-1.5 px-2 bg-white/5 hover:bg-white/10 rounded-lg text-[11px] font-medium text-gray-300 flex items-center justify-center gap-1.5 transition">
+                    <i data-lucide="pin" class="w-3.5 h-3.5 text-yellow-400"></i> Copy Comment
+                </button>
+                <button onclick="copyClipField('${clip.clip_id}', 'description')" class="py-1.5 px-2 bg-white/5 hover:bg-white/10 rounded-lg text-[11px] font-medium text-gray-300 flex items-center justify-center gap-1.5 transition">
+                    <i data-lucide="file-text" class="w-3.5 h-3.5 text-emerald-400"></i> Copy Description
                 </button>
                 <button onclick="openVoiceModal('${clip.clip_id}')" class="py-2 px-2 bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/40 rounded-lg text-[11px] font-bold text-purple-200 flex items-center justify-center gap-1.5 transition">
                     <i data-lucide="mic" class="w-3.5 h-3.5 text-purple-300"></i> Add Voiceover
@@ -785,6 +839,11 @@ function openEditMetadataModal(clipId) {
     document.getElementById("editTitleCharCount").innerText = `${(clip.title || "").length}/100`;
     document.getElementById("editDescTextarea").value = clip.description || "";
     document.getElementById("editTagsInput").value = clip.tags_string || (clip.tags || []).join(" ");
+    
+    const pinnedCommentInput = document.getElementById("editPinnedCommentInput");
+    if (pinnedCommentInput) {
+        pinnedCommentInput.value = clip.pinned_comment || "";
+    }
     
     // Populate AI Title Suggestions
     const suggestionsList = document.getElementById("editTitleSuggestionsList");
@@ -824,12 +883,15 @@ async function saveEditedMetadata() {
     const newTitle = document.getElementById("editTitleInput").value.trim() || clip.title;
     const newDesc = document.getElementById("editDescTextarea").value.trim() || clip.description;
     const newTagsStr = document.getElementById("editTagsInput").value.trim();
+    const newPinnedComment = document.getElementById("editPinnedCommentInput")?.value.trim() || clip.pinned_comment || "";
 
     // Update locally in memory
     clip.title = newTitle;
     clip.description = newDesc;
     clip.tags_string = newTagsStr;
     clip.tags = newTagsStr.split(/\s+/).filter(t => t.startsWith("#"));
+    clip.pinned_comment = newPinnedComment;
+    clip.full_viral_package = `📌 TITLE:\n${newTitle}\n\n💬 PINNED COMMENT:\n${newPinnedComment}\n\n🎬 DESCRIPTION:\n${newDesc}\n\n🔥 HASHTAGS:\n${newTagsStr}`;
 
     // Update DOM on card
     const titleEl = document.getElementById(`title_text_${activeEditClipId}`);
@@ -847,14 +909,15 @@ async function saveEditedMetadata() {
                 clip_id: activeEditClipId,
                 title: newTitle,
                 description: newDesc,
-                tags: clip.tags
+                tags: clip.tags,
+                pinned_comment: newPinnedComment
             })
         });
     } catch (e) {
         console.error("Update metadata error:", e);
     }
 
-    showToast("Title & Description Saved!");
+    showToast("Viral Metadata Saved!");
     closeEditMetadataModal();
 }
 
@@ -874,10 +937,16 @@ function copyClipField(clipId, field) {
         msg = "Title Copied!";
     } else if (field === "tags") {
         text = clip.tags_string || (clip.tags || []).join(" ");
-        msg = "Hashtags Copied!";
+        msg = "Trending Hashtags Copied!";
     } else if (field === "description") {
         text = clip.description;
         msg = "Description & Credits Copied!";
+    } else if (field === "pinned_comment") {
+        text = clip.pinned_comment || "";
+        msg = "Algorithm Pinned Comment Copied!";
+    } else if (field === "viral_package") {
+        text = clip.full_viral_package || `📌 TITLE:\n${clip.title}\n\n💬 PINNED COMMENT:\n${clip.pinned_comment || ''}\n\n🎬 DESCRIPTION:\n${clip.description}\n\n🔥 TRENDING HASHTAGS:\n${clip.tags_string || (clip.tags || []).join(' ')}`;
+        msg = "Full Viral Growth Bundle Copied!";
     }
 
     navigator.clipboard.writeText(text).then(() => {
