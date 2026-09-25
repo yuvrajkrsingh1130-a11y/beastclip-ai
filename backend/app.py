@@ -39,6 +39,7 @@ from backend.metadata_generator import MetadataGenerator
 from backend.thumbnail_maker import ThumbnailMaker
 from backend.tts_voice import VoiceoverStudio
 from backend.youtube_publisher import YouTubePublisher
+from backend.instagram_publisher import InstagramPublisher
 from backend.compilation_builder import CompilationBuilder
 
 app = FastAPI(title="BeastClip AI - Local YouTube Shorts Generator")
@@ -58,6 +59,7 @@ app.mount("/output", StaticFiles(directory=str(OUTPUT_DIR)), name="output")
 # In-memory jobs tracker
 JOBS = {}
 yt_publisher = YouTubePublisher()
+insta_publisher = InstagramPublisher()
 compilation_builder = CompilationBuilder()
 
 
@@ -930,6 +932,58 @@ def drip_schedule_all_clips(req: dict):
         "total_scheduled": sum(1 for r in results if r["status"] == "scheduled"),
         "results": results
     }
+
+# ==================== INSTAGRAM REELS INTEGRATION ====================
+
+@app.get("/api/instagram/status")
+def get_instagram_status():
+    """Returns connected Instagram account status."""
+    return insta_publisher.get_status()
+
+@app.post("/api/instagram/connect")
+def connect_instagram_account(req: dict):
+    """Connects or updates an Instagram account profile."""
+    handle = req.get("handle")
+    account_name = req.get("account_name")
+    access_token = req.get("access_token")
+    instagram_account_id = req.get("instagram_account_id")
+    if not handle:
+        raise HTTPException(status_code=400, detail="Instagram username or handle is required")
+    try:
+        res = insta_publisher.connect_account(handle, account_name, access_token, instagram_account_id)
+        return res
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/instagram/disconnect")
+def disconnect_instagram_account():
+    """Disconnects the current Instagram account."""
+    return insta_publisher.disconnect_account()
+
+@app.post("/api/instagram/prepare-reel")
+def prepare_instagram_reel(req: dict):
+    """Formats an Instagram-optimized Reels caption with creator attribution and high-engagement tags."""
+    clip_id = req.get("clip_id")
+    title = req.get("title", "Viral Moment")
+    creator_credit = req.get("creator_credit", "")
+    tags = req.get("tags", [])
+
+    caption = insta_publisher.format_reels_caption(title, creator_credit, tags)
+    return {
+        "clip_id": clip_id,
+        "caption": caption,
+        "instagram_connected": insta_publisher.is_connected(),
+        "account": insta_publisher.get_status()
+    }
+
+@app.post("/api/instagram/publish-reel")
+def publish_instagram_reel(req: dict):
+    """Publishes Reel directly via Meta Graph API if access token exists."""
+    video_url = req.get("video_url")
+    caption = req.get("caption")
+    if not video_url:
+        raise HTTPException(status_code=400, detail="Missing video_url")
+    return insta_publisher.publish_reel_api(video_url, caption)
 
 if __name__ == "__main__":
 

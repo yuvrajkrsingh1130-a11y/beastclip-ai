@@ -47,6 +47,7 @@ temp/
 auth/youtube_token.json
 auth/client_secret.json
 auth/code_verifier.txt
+auth/instagram_account.json
 !auth/.gitkeep
 
 # Cloudflared & Binary Executables
