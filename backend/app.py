@@ -66,7 +66,7 @@ class ProcessRequest(BaseModel):
     target_duration: int = 40        # 30, 40, 60 seconds
     num_clips: int = 5               # 3, 5, 10, 15
     subtitle_style: str = "hormozi"  # hormozi, beast, neon, fire_red
-    layout: str = "smart_face"       # smart_face (9:16 full vertical), split_screen, blurred_backdrop
+    layout: str = "split_screen"     # split_screen (default), gaming_pip, blurred_backdrop
     creator_credit: Optional[str] = None
     enable_copyright_shield: bool = True
     enable_seamless_loop: bool = True
@@ -78,7 +78,7 @@ class MultiVideoCompilationRequest(BaseModel):
     target_duration: int = 50        # 40, 50, 60 seconds
     countdown_style: str = "gold"    # gold, cyber, fire, beast
     subtitle_style: str = "hormozi"
-    layout: str = "smart_face"
+    layout: str = "split_screen"
     creator_credit: Optional[str] = None
 
 class StitchClipsRequest(BaseModel):
@@ -113,7 +113,6 @@ def get_presets():
         "layouts": [
             {"id": "split_screen", "name": "Split Screen (Gaming + Cam)", "desc": "Top half facecam, bottom half gameplay (Twitch/Kick style)"},
             {"id": "gaming_pip", "name": "Gaming PiP Cam (Corner Bubble)", "desc": "Fullscreen gameplay with dynamic rounded facecam in corner"},
-            {"id": "smart_face", "name": "Smart Face Track (9:16)", "desc": "Autocenters streamer reaction in full 9:16 screen"},
             {"id": "blurred_backdrop", "name": "Blurred Ambient Backdrop", "desc": "Landscape video with aesthetic blurred vertical background"}
         ]
     }

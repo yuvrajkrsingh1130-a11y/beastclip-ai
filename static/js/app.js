@@ -420,7 +420,7 @@ async function startMultiVideoCompilation() {
 
     const targetDuration = parseInt(document.getElementById("compilationDurationSelect").value, 10);
     const countdownStyle = document.getElementById("compilationStyleSelect").value;
-    const layout = document.querySelector('input[name="layout"]:checked')?.value || "smart_face";
+    const layout = document.querySelector('input[name="layout"]:checked')?.value || "split_screen";
     const subtitleStyle = document.querySelector('input[name="subStyle"]:checked')?.value || "hormozi";
     const creatorCredit = document.getElementById("creatorCreditInput").value.trim();
 
@@ -603,7 +603,7 @@ async function startClipGeneration() {
         return;
     }
 
-    const layout = document.querySelector('input[name="layout"]:checked')?.value || "smart_face";
+    const layout = document.querySelector('input[name="layout"]:checked')?.value || "split_screen";
     const subtitleStyle = document.querySelector('input[name="subStyle"]:checked')?.value || "hormozi";
     const targetDuration = parseInt(document.getElementById("clipDurationSelect").value, 10);
     const numClips = parseInt(document.getElementById("clipCountSelect").value, 10);

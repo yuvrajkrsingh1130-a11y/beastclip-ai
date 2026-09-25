@@ -15,7 +15,7 @@ class VideoRenderer:
         ass_subtitle_path: str,
         output_clip_path: str,
         cam_box: dict = None,
-        layout: str = "smart_face",
+        layout: str = "split_screen",
         creator_credit: str = "@Creator",
         enable_copyright_protection: bool = True,
         enable_seamless_loop: bool = True
@@ -56,15 +56,8 @@ class VideoRenderer:
         crop_screen_x = "iw*0.22" if cam_cx < 0.5 else "iw*0.04"
         crop_screen_y = "ih*0.04"
 
-        # Build Video Filter Graph (Clean 9:16 portrait without unwanted overlays/lines)
-        if layout == "split_screen":
-            vf = (
-                f"[0:v]setpts=PTS-STARTPTS,crop=w={crop_cam_w}:h={crop_cam_h}:x='{crop_cam_x}':y='{crop_cam_y}',scale=1080:960:force_original_aspect_ratio=increase,crop=1080:960[top];"
-                f"[0:v]setpts=PTS-STARTPTS,crop=w={crop_screen_w}:h={crop_screen_h}:x='{crop_screen_x}':y='{crop_screen_y}',scale=1080:960:force_original_aspect_ratio=increase,crop=1080:960[bot];"
-                f"[top][bot]vstack=inputs=2[stacked];"
-                f"[stacked]subtitles='{escaped_ass}'[v]"
-            )
-        elif layout == "gaming_pip":
+        # Build Video Filter Graph (Split Screen default, or PiP, or Blurred)
+        if layout == "gaming_pip":
             vf = (
                 f"[0:v]setpts=PTS-STARTPTS,scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920[bg];"
                 f"[0:v]setpts=PTS-STARTPTS,crop=w={crop_cam_w}:h={crop_cam_h}:x='{crop_cam_x}':y='{crop_cam_y}',scale=380:440:force_original_aspect_ratio=increase,crop=380:440[cam];"
@@ -79,10 +72,12 @@ class VideoRenderer:
                 f"[merged]subtitles='{escaped_ass}'[v]"
             )
         else:
-            # Default / smart_face: Clean, pure, full-bleed 1080x1920 vertical portrait
+            # Default: Clean Split Screen (Cam Top + Gameplay/Screen Bottom)
             vf = (
-                f"[0:v]setpts=PTS-STARTPTS,scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,"
-                f"subtitles='{escaped_ass}'[v]"
+                f"[0:v]setpts=PTS-STARTPTS,crop=w={crop_cam_w}:h={crop_cam_h}:x='{crop_cam_x}':y='{crop_cam_y}',scale=1080:960:force_original_aspect_ratio=increase,crop=1080:960[top];"
+                f"[0:v]setpts=PTS-STARTPTS,crop=w={crop_screen_w}:h={crop_screen_h}:x='{crop_screen_x}':y='{crop_screen_y}',scale=1080:960:force_original_aspect_ratio=increase,crop=1080:960[bot];"
+                f"[top][bot]vstack=inputs=2[stacked];"
+                f"[stacked]subtitles='{escaped_ass}'[v]"
             )
 
         cmd = [
