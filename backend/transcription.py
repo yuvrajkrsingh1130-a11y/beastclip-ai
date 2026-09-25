@@ -104,7 +104,7 @@ def post_process_transcript_text(text: str) -> str:
     return res
 
 class Transcriber:
-    def __init__(self, model_size="small.en", device="cpu", compute_type="int8"):
+    def __init__(self, model_size="base.en", device="cpu", compute_type="int8"):
         self.model_size = model_size
         self.device = device
         self.compute_type = compute_type
@@ -114,13 +114,13 @@ class Transcriber:
         if self.model is None:
             try:
                 from faster_whisper import WhisperModel
-                print(f"[Transcriber] Loading faster-whisper model '{self.model_size}'...")
+                print(f"[Transcriber] Loading faster-whisper model '{self.model_size}' (cpu_threads=6)...")
                 self.model = WhisperModel(
                     self.model_size,
                     device=self.device,
                     compute_type=self.compute_type,
-                    cpu_threads=8,
-                    num_workers=2
+                    cpu_threads=6,
+                    num_workers=1
                 )
             except Exception as e:
                 print(f"[Transcriber] Primary model load notice ({e}), falling back to 'base.en'...")
@@ -130,8 +130,8 @@ class Transcriber:
                         "base.en",
                         device=self.device,
                         compute_type=self.compute_type,
-                        cpu_threads=8,
-                        num_workers=2
+                        cpu_threads=6,
+                        num_workers=1
                     )
                 except Exception as e2:
                     print(f"[Transcriber] Fallback load error: {e2}")
@@ -146,7 +146,7 @@ class Transcriber:
         is_clip_slice: bool = False
     ) -> dict:
         """
-        High-precision transcription with word timestamps, beam search, temperature fallback,
+        High-precision transcription with word timestamps, greedy decoding for max speed,
         sensitive acoustic thresholds for capturing small talk/whispers + screams,
         and modern streamer vernacular conditioning.
         """
@@ -177,17 +177,18 @@ class Transcriber:
                 use_vad = not is_clip_slice
                 vad_params = dict(min_silence_duration_ms=600, speech_pad_ms=300, threshold=0.2) if use_vad else None
 
+                # Ultra-fast greedy decoding: beam_size=1, best_of=1, temperature=0.0
                 segments, info = self.model.transcribe(
                     str(audio_path),
                     word_timestamps=True,
-                    beam_size=3,
-                    best_of=3,
-                    temperature=[0.0, 0.2, 0.4],
+                    beam_size=1,
+                    best_of=1,
+                    temperature=0.0,
                     condition_on_previous_text=False,
                     initial_prompt=initial_prompt,
                     vad_filter=use_vad,
                     vad_parameters=vad_params,
-                    no_speech_threshold=0.25,
+                    no_speech_threshold=0.30,
                     compression_ratio_threshold=2.4,
                     log_prob_threshold=-1.0
                 )
@@ -275,3 +276,91 @@ class Transcriber:
             "text": "",
             "segments": []
         }
+
+    def transcribe_candidate_regions(
+        self,
+        audio_path: str,
+        regions: list,
+        video_title: str = "",
+        uploader: str = ""
+    ) -> dict:
+        """
+        Ultra-fast targeted transcription for long streams:
+        Instead of transcribing 1-2 hours of quiet gameplay, slices only the top candidate
+        reaction/scream regions and transcribes them in seconds with exact stream timestamps!
+        """
+        import wave
+        from pathlib import Path
+        temp_dir = Path(audio_path).parent
+
+        all_segments = []
+        full_text_list = []
+        seg_id_counter = 0
+
+        try:
+            with wave.open(str(audio_path), "rb") as wf:
+                params = wf.getparams()
+                sample_rate = wf.getframerate()
+                total_frames = wf.getnframes()
+
+                for idx, r in enumerate(regions):
+                    start_sec = r["start"]
+                    dur_sec = r["duration"]
+                    start_frame = max(0, min(total_frames - 1, int(start_sec * sample_rate)))
+                    num_frames = min(int(dur_sec * sample_rate), total_frames - start_frame)
+                    if num_frames <= 0:
+                        continue
+
+                    slice_wav = temp_dir / f"scan_slice_{idx}.wav"
+                    try:
+                        wf.setpos(start_frame)
+                        frames = wf.readframes(num_frames)
+                        with wave.open(str(slice_wav), "wb") as out_wf:
+                            out_wf.setparams(params)
+                            out_wf.writeframes(frames)
+
+                        slice_res = self.transcribe(
+                            str(slice_wav),
+                            video_title=video_title,
+                            uploader=uploader,
+                            is_clip_slice=True
+                        )
+
+                        for s in slice_res.get("segments", []):
+                            seg_id_counter += 1
+                            aligned_words = []
+                            for w in s.get("words", []):
+                                aligned_words.append({
+                                    "word": w["word"],
+                                    "start": round(start_sec + w["start"], 2),
+                                    "end": round(start_sec + w["end"], 2),
+                                    "probability": w.get("probability", 1.0)
+                                })
+                            all_segments.append({
+                                "id": seg_id_counter,
+                                "start": round(start_sec + s["start"], 2),
+                                "end": round(start_sec + s["end"], 2),
+                                "text": s["text"],
+                                "words": aligned_words
+                            })
+                            full_text_list.append(s["text"])
+                    finally:
+                        if slice_wav.exists():
+                            try:
+                                slice_wav.unlink()
+                            except Exception:
+                                pass
+        except Exception as e:
+            print(f"[Transcriber] transcribe_candidate_regions notice: {e}, falling back to direct transcribe...")
+            return self.transcribe(audio_path, video_title=video_title, uploader=uploader)
+
+        all_segments.sort(key=lambda x: x["start"])
+
+        return {
+            "language": "en",
+            "language_probability": 1.0,
+            "duration": regions[-1].get("end", regions[-1]["start"] + regions[-1]["duration"]) if regions else 60.0,
+            "text": " ".join(full_text_list),
+            "segments": all_segments
+        }
+

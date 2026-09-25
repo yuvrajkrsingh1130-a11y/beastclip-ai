@@ -209,38 +209,40 @@ def process_single_clip_task(
 
     # Frame-Perfect Subtitle Synchronization
     clip_words = clip.get("words", [])
-    try:
-        clip_audio_tmp = TEMP_DIR / f"{clip_id}_clean.wav"
-        ffmpeg_slice_cmd = ["ffmpeg", "-y"]
-        if render_start > 0.0:
-            ffmpeg_slice_cmd.extend(["-ss", str(render_start), "-t", str(clip["duration"])])
-        elif clip.get("duration"):
-            ffmpeg_slice_cmd.extend(["-t", str(clip["duration"])])
+    # Only run slice re-transcription fallback if words are missing from master transcript
+    if not clip_words or len(clip_words) < 2:
+        try:
+            clip_audio_tmp = TEMP_DIR / f"{clip_id}_clean.wav"
+            ffmpeg_slice_cmd = ["ffmpeg", "-y"]
+            if render_start > 0.0:
+                ffmpeg_slice_cmd.extend(["-ss", str(render_start), "-t", str(clip["duration"])])
+            elif clip.get("duration"):
+                ffmpeg_slice_cmd.extend(["-t", str(clip["duration"])])
 
-        ffmpeg_slice_cmd.extend([
-            "-accurate_seek",
-            "-i", str(source_for_render),
-            "-avoid_negative_ts", "make_zero",
-            "-vn", "-acodec", "pcm_s16le", "-ar", "16000", "-ac", "1",
-            str(clip_audio_tmp)
-        ])
-        subprocess.run(ffmpeg_slice_cmd, check=True, capture_output=True)
+            ffmpeg_slice_cmd.extend([
+                "-accurate_seek",
+                "-i", str(source_for_render),
+                "-avoid_negative_ts", "make_zero",
+                "-vn", "-acodec", "pcm_s16le", "-ar", "16000", "-ac", "1",
+                str(clip_audio_tmp)
+            ])
+            subprocess.run(ffmpeg_slice_cmd, check=True, capture_output=True)
 
-        exact_trans = transcriber.transcribe(
-            str(clip_audio_tmp),
-            video_title=info.get("title", ""),
-            uploader=info.get("uploader", ""),
-            context_prompt=clip.get("text", ""),
-            is_clip_slice=True
-        )
-        exact_words = []
-        for s in exact_trans.get("segments", []):
-            for w in s.get("words", []):
-                exact_words.append(w)
-        if exact_words:
-            clip_words = exact_words
-    except Exception as sync_err:
-        print(f"[Sync] Notice: {sync_err}")
+            exact_trans = transcriber.transcribe(
+                str(clip_audio_tmp),
+                video_title=info.get("title", ""),
+                uploader=info.get("uploader", ""),
+                context_prompt=clip.get("text", ""),
+                is_clip_slice=True
+            )
+            exact_words = []
+            for s in exact_trans.get("segments", []):
+                for w in s.get("words", []):
+                    exact_words.append(w)
+            if exact_words:
+                clip_words = exact_words
+        except Exception as sync_err:
+            print(f"[Sync] Notice: {sync_err}")
 
     # Detect Streamer Webcam Box
     cam_box = face_tracker.detect_streamer_webcam_box(source_for_render, sample_time=render_start + 2.0)
@@ -336,21 +338,39 @@ def run_processing_pipeline(job_id: str, req: ProcessRequest):
             except Exception:
                 pass
 
-        # 1. Ultra-fast Whisper Transcription
-        JOBS[job_id]["progress"] = 25
-        JOBS[job_id]["message"] = "Transcribing Speech with Turbo AI Model..."
-        transcriber = Transcriber(model_size="small.en")
-        transcript_data = transcriber.transcribe(
-            audio_path,
-            video_title=info.get("title", ""),
-            uploader=info.get("uploader", "")
-        )
-
-        # 2. Audio Energy / Screams / Hype Spikes
-        JOBS[job_id]["progress"] = 45
-        JOBS[job_id]["message"] = "Analyzing Laughs, Screams & Viral Energy Spikes..."
+        # 1. Instant Audio Energy & Viral Spike Analysis (1-2 seconds)
+        JOBS[job_id]["progress"] = 20
+        JOBS[job_id]["message"] = "Analyzing Laughs, Screams & Viral Energy Spikes across timeline..."
         energy_detector = AudioEnergyDetector()
         energy_timeline = energy_detector.analyze_audio_energy(audio_path)
+
+        # 2. Ultra-Fast Whisper Transcription (base.en with greedy decoding)
+        JOBS[job_id]["progress"] = 35
+        transcriber = Transcriber(model_size="base.en")
+
+        # For long streams (> 12 mins), transcribe top peak reaction regions for 10x-20x speedup!
+        if duration > 720:
+            peak_regions = energy_detector.find_top_peak_regions(
+                energy_timeline,
+                total_duration=duration,
+                region_duration=max(45.0, float(req.target_duration) + 5.0),
+                max_regions=15,
+                min_gap_seconds=max(60.0, duration / 25.0)
+            )
+            JOBS[job_id]["message"] = f"Transcribing Top {len(peak_regions)} Peak Viral Moments with Turbo AI Model..."
+            transcript_data = transcriber.transcribe_candidate_regions(
+                audio_path,
+                peak_regions,
+                video_title=info.get("title", ""),
+                uploader=info.get("uploader", "")
+            )
+        else:
+            JOBS[job_id]["message"] = "Transcribing Speech with Turbo AI Model..."
+            transcript_data = transcriber.transcribe(
+                audio_path,
+                video_title=info.get("title", ""),
+                uploader=info.get("uploader", "")
+            )
 
         # 3. Highlight Extraction
         JOBS[job_id]["progress"] = 60
@@ -436,7 +456,7 @@ def run_multi_video_compilation_pipeline(job_id: str, req: MultiVideoCompilation
         JOBS[job_id]["message"] = f"Scanning {num_videos} videos for Top Viral Moments..."
 
         downloader = YouTubeDownloader(TEMP_DIR)
-        transcriber = Transcriber(model_size="small.en")
+        transcriber = Transcriber(model_size="base.en")
         energy_detector = AudioEnergyDetector()
         clip_extractor = ClipExtractor(energy_detector)
         face_tracker = FaceTracker()

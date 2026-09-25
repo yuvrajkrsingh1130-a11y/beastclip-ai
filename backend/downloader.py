@@ -221,7 +221,7 @@ class YouTubeDownloader:
         cmd = base_cmd + [
             "--download-sections", f"*{start_sec}-{end_sec}",
             "--force-keyframes-at-cuts",
-            "-f", "bv*[height<=1080]+ba/b[height<=1080]/best",
+            "-f", "18/best[ext=mp4][height<=720]/best[height<=1080]/best",
             "--merge-output-format", "mp4",
             "-o", str(clip_section_path),
             url
@@ -233,7 +233,7 @@ class YouTubeDownloader:
             # Try secondary format if primary merge failed
             cmd_fallback = base_cmd + [
                 "--download-sections", f"*{start_sec}-{end_sec}",
-                "-f", "b[height<=1080]/best",
+                "-f", "best[height<=720]/best",
                 "--merge-output-format", "mp4",
                 "-o", str(clip_section_path),
                 url

@@ -73,12 +73,15 @@ class AudioEnergyDetector:
     def get_hype_score_for_range(self, energy_timeline: list, start_time: float, end_time: float) -> float:
         """
         Calculates a calibrated hype score (0.0 to 100.0) for a given time window,
-        measuring vocal energy intensity, scream peaks, and reaction density.
+        measuring vocal energy intensity, scream peaks, and reaction density in O(1) time.
         """
-        segment_items = [
-            item for item in energy_timeline
-            if start_time <= item["time"] <= end_time
-        ]
+        if not energy_timeline:
+            return 0.0
+
+        frame_sec = self.frame_duration_ms / 1000.0
+        start_idx = max(0, int(start_time / frame_sec))
+        end_idx = min(len(energy_timeline), int(end_time / frame_sec) + 1)
+        segment_items = energy_timeline[start_idx:end_idx]
         if not segment_items:
             return 0.0
 
@@ -101,3 +104,78 @@ class AudioEnergyDetector:
 
         total_score = vol_score + peak_score + density_score
         return min(round(total_score, 1), 99.9)
+
+    def find_top_peak_regions(
+        self,
+        energy_timeline: list,
+        total_duration: float,
+        region_duration: float = 50.0,
+        max_regions: int = 15,
+        min_gap_seconds: float = 60.0
+    ) -> list:
+        """
+        Fast-scans the energy timeline in milliseconds to find the highest-intensity scream, laugh,
+        and reaction burst regions distributed across the stream timeline.
+        Returns a list of non-overlapping candidate regions:
+        [{'start': float, 'end': float, 'duration': float, 'hype_score': float, 'peak_time': float}]
+        """
+        if not energy_timeline:
+            return []
+
+        # Find all peak moments (spikes or high energy)
+        spikes = [
+            it for it in energy_timeline
+            if it.get("is_spike") or it.get("energy", 0) > 0.35
+        ]
+
+        # Prioritize top 60 highest surge reaction moments
+        spikes.sort(key=lambda x: x.get("energy", 0) * x.get("surge_factor", 1.0), reverse=True)
+        sample_points = spikes[:60] if spikes else sorted(energy_timeline, key=lambda x: x["energy"], reverse=True)[:50]
+
+        candidates = []
+        for pt in sample_points:
+            p_time = pt["time"]
+            start_t = max(0.0, p_time - (region_duration * 0.35))
+            end_t = min(total_duration, start_t + region_duration)
+            start_t = max(0.0, end_t - region_duration)
+
+            hype = self.get_hype_score_for_range(energy_timeline, start_t, end_t)
+            candidates.append({
+                "start": round(start_t, 2),
+                "end": round(end_t, 2),
+                "duration": round(end_t - start_t, 2),
+                "peak_time": round(p_time, 2),
+                "hype_score": hype
+            })
+
+        # Sort candidates by hype score descending
+        candidates.sort(key=lambda x: x["hype_score"], reverse=True)
+
+        # Diverse non-overlapping selection
+        chosen = []
+        for cand in candidates:
+            conflict = False
+            for c in chosen:
+                overlap = max(cand["start"], c["start"]) < min(cand["end"], c["end"])
+                dist = abs(cand["start"] - c["start"])
+                if overlap or dist < min_gap_seconds:
+                    conflict = True
+                    break
+            if not conflict:
+                chosen.append(cand)
+                if len(chosen) >= max_regions:
+                    break
+
+        if len(chosen) < max_regions:
+            for cand in candidates:
+                if cand not in chosen:
+                    overlap = any(max(cand["start"], c["start"]) < min(cand["end"], c["end"]) for c in chosen)
+                    if not overlap:
+                        chosen.append(cand)
+                        if len(chosen) >= max_regions:
+                            break
+
+        # Return chronologically sorted
+        chosen.sort(key=lambda x: x["start"])
+        return chosen
+
