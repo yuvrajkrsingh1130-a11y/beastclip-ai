@@ -113,6 +113,7 @@ class VideoRenderer:
             "-y",
             "-ss", str(start_time),
             "-t", str(duration),
+            "-accurate_seek",
             "-i", str(source_video_path),
             "-avoid_negative_ts", "make_zero",
             "-filter_complex", vf,

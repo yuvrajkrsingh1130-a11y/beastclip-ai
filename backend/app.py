@@ -192,7 +192,9 @@ def process_single_clip_task(
             ffmpeg_slice_cmd.extend(["-t", str(clip["duration"])])
 
         ffmpeg_slice_cmd.extend([
+            "-accurate_seek",
             "-i", str(source_for_render),
+            "-avoid_negative_ts", "make_zero",
             "-vn", "-acodec", "pcm_s16le", "-ar", "16000", "-ac", "1",
             str(clip_audio_tmp)
         ])
@@ -202,7 +204,8 @@ def process_single_clip_task(
             str(clip_audio_tmp),
             video_title=info.get("title", ""),
             uploader=info.get("uploader", ""),
-            context_prompt=clip.get("text", "")
+            context_prompt=clip.get("text", ""),
+            is_clip_slice=True
         )
         exact_words = []
         for s in exact_trans.get("segments", []):
