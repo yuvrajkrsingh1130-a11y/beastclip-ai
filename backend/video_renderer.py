@@ -4,9 +4,8 @@ from pathlib import Path
 from backend.config import BASE_DIR
 
 class VideoRenderer:
-    def __init__(self, output_width: int = 1080, output_height: int = 1920):
-        self.output_width = output_width
-        self.output_height = output_height
+    def __init__(self):
+        pass
 
     def render_clip(
         self,
@@ -16,21 +15,15 @@ class VideoRenderer:
         ass_subtitle_path: str,
         output_clip_path: str,
         cam_box: dict = None,
-        layout: str = "split_screen",
+        layout: str = "smart_face",
         creator_credit: str = "@Creator",
-        enable_copyright_protection: bool = False,
+        enable_copyright_protection: bool = True,
         enable_seamless_loop: bool = True
     ) -> str:
         """
-        Renders a full 1080x1920 9:16 vertical Short with:
-        1. Top Half: Streamer Facecam (Speed / Kai)
-        2. Bottom Half: Full Screen Content / Fan Art / Game
-        3. 100% Pure, Untouched, Natural Audio Fidelity with Seamless Shorts Loop
-        4. Frame-perfect Subtitles
+        Renders an ultra-smooth 1080x1920 portrait Short with frame-accurate subtitle burn-in,
+        setpts=PTS-STARTPTS frame resetting, and studio mastered audio.
         """
-        out_path = Path(output_clip_path)
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-
         if not cam_box:
             cam_box = {"x": 0.22, "y": 0.72, "w": 0.42, "h": 0.55}
 
@@ -41,10 +34,11 @@ class VideoRenderer:
             if drive:
                 escaped_ass = f"{drive[0]}\\:{rest}"
 
-        # Studio-Grade Audio Mastering: Loudness Boost + Compression + Resample Sync
+        # Studio-Grade Audio Mastering with zero PTS baseline
         if enable_seamless_loop and duration > 1.0:
             fade_out_start = max(0.5, round(duration - 0.05, 2))
             audio_filter = (
+                "asetpts=PTS-STARTPTS,"
                 "aresample=async=1000,"
                 "volume=1.35,"
                 "compand=attacks=0.02:decays=0.1:points=-80/-80|-45/-22|-20/-8|0/-1:soft-knee=6,"
@@ -53,6 +47,7 @@ class VideoRenderer:
             )
         else:
             audio_filter = (
+                "asetpts=PTS-STARTPTS,"
                 "aresample=async=1000,"
                 "volume=1.35,"
                 "compand=attacks=0.02:decays=0.1:points=-80/-80|-45/-22|-20/-8|0/-1:soft-knee=6,"
@@ -76,35 +71,32 @@ class VideoRenderer:
         # Progress bar filter for Shorts retention boost
         pbar_filter = f",drawbox=x=0:y=1910:w='(t/{max(1.0, duration)})*1080':h=10:color=gold@0.9:t=fill"
 
-        # Build Video Filter Graph
+        # Build Video Filter Graph with strictly zero-indexed PTS
         if layout == "split_screen":
-            # Split Screen (Top = Streamer Facecam, Bottom = Gameplay Screen)
             vf = (
-                f"[0:v]crop=w={crop_cam_w}:h={crop_cam_h}:x='{crop_cam_x}':y='{crop_cam_y}',scale=1080:960:force_original_aspect_ratio=increase,crop=1080:960[top];"
-                f"[0:v]crop=w={crop_screen_w}:h={crop_screen_h}:x='{crop_screen_x}':y='{crop_screen_y}',scale=1080:960:force_original_aspect_ratio=increase,crop=1080:960[bot];"
+                f"[0:v]setpts=PTS-STARTPTS,crop=w={crop_cam_w}:h={crop_cam_h}:x='{crop_cam_x}':y='{crop_cam_y}',scale=1080:960:force_original_aspect_ratio=increase,crop=1080:960[top];"
+                f"[0:v]setpts=PTS-STARTPTS,crop=w={crop_screen_w}:h={crop_screen_h}:x='{crop_screen_x}':y='{crop_screen_y}',scale=1080:960:force_original_aspect_ratio=increase,crop=1080:960[bot];"
                 f"[top][bot]vstack=inputs=2[stacked];"
                 f"[stacked]subtitles='{escaped_ass}'{pbar_filter}[v]"
             )
         elif layout == "gaming_pip":
-            # Gaming Gameplay Fullscreen with Streamer PiP Bubble in Top Corner
             vf = (
-                f"[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920[bg];"
-                f"[0:v]crop=w={crop_cam_w}:h={crop_cam_h}:x='{crop_cam_x}':y='{crop_cam_y}',scale=380:440:force_original_aspect_ratio=increase,crop=380:440[cam];"
+                f"[0:v]setpts=PTS-STARTPTS,scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920[bg];"
+                f"[0:v]setpts=PTS-STARTPTS,crop=w={crop_cam_w}:h={crop_cam_h}:x='{crop_cam_x}':y='{crop_cam_y}',scale=380:440:force_original_aspect_ratio=increase,crop=380:440[cam];"
                 f"[bg][cam]overlay=W-w-36:48[merged];"
                 f"[merged]subtitles='{escaped_ass}'{pbar_filter}[v]"
             )
         elif layout == "blurred_backdrop":
-            # Blurred Background Mode (Full widescreen centered with blurred vertical bg)
             vf = (
-                f"[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,gblur=sigma=28[bg];"
-                f"[0:v]scale=1080:608:force_original_aspect_ratio=decrease[fg];"
+                f"[0:v]setpts=PTS-STARTPTS,scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,gblur=sigma=28[bg];"
+                f"[0:v]setpts=PTS-STARTPTS,scale=1080:608:force_original_aspect_ratio=decrease[fg];"
                 f"[bg][fg]overlay=(W-w)/2:(H-h)/2[merged];"
                 f"[merged]subtitles='{escaped_ass}'{pbar_filter}[v]"
             )
         else:
-            # Default / smart_face: Full-Bleed 1080x1920 Vertical Format (Standard for IRL/Vlogs/Clips)
+            # Default / smart_face: Full-Bleed 1080x1920 Vertical
             vf = (
-                f"[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,"
+                f"[0:v]setpts=PTS-STARTPTS,scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,"
                 f"subtitles='{escaped_ass}'{pbar_filter}[v]"
             )
 
@@ -136,12 +128,13 @@ class VideoRenderer:
             print(f"[VideoRenderer] Main render notice: {res.stderr[:200]}")
             # Clean fallback full vertical
             fallback_vf = (
-                f"[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,"
+                f"[0:v]setpts=PTS-STARTPTS,scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,"
                 f"subtitles='{escaped_ass}'[v]"
             )
             fallback_cmd = [
                 "ffmpeg", "-y",
                 "-ss", str(start_time), "-t", str(duration),
+                "-accurate_seek",
                 "-i", str(source_video_path),
                 "-avoid_negative_ts", "make_zero",
                 "-filter_complex", fallback_vf,
