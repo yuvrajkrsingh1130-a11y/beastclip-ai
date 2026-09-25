@@ -198,7 +198,12 @@ def process_single_clip_task(
         ])
         subprocess.run(ffmpeg_slice_cmd, check=True, capture_output=True)
 
-        exact_trans = transcriber.transcribe(str(clip_audio_tmp))
+        exact_trans = transcriber.transcribe(
+            str(clip_audio_tmp),
+            video_title=info.get("title", ""),
+            uploader=info.get("uploader", ""),
+            context_prompt=clip.get("text", "")
+        )
         exact_words = []
         for s in exact_trans.get("segments", []):
             for w in s.get("words", []):
@@ -298,8 +303,12 @@ def run_processing_pipeline(job_id: str, req: ProcessRequest):
         # 1. Ultra-fast Whisper Transcription
         JOBS[job_id]["progress"] = 25
         JOBS[job_id]["message"] = "Transcribing Speech with Turbo AI Model..."
-        transcriber = Transcriber(model_size="base.en")
-        transcript_data = transcriber.transcribe(audio_path)
+        transcriber = Transcriber(model_size="small.en")
+        transcript_data = transcriber.transcribe(
+            audio_path,
+            video_title=info.get("title", ""),
+            uploader=info.get("uploader", "")
+        )
 
         # 2. Audio Energy / Screams / Hype Spikes
         JOBS[job_id]["progress"] = 45
@@ -391,7 +400,7 @@ def run_multi_video_compilation_pipeline(job_id: str, req: MultiVideoCompilation
         JOBS[job_id]["message"] = f"Scanning {num_videos} videos for Top Viral Moments..."
 
         downloader = YouTubeDownloader(TEMP_DIR)
-        transcriber = Transcriber(model_size="base.en")
+        transcriber = Transcriber(model_size="small.en")
         energy_detector = AudioEnergyDetector()
         clip_extractor = ClipExtractor(energy_detector)
         face_tracker = FaceTracker()
@@ -425,7 +434,11 @@ def run_multi_video_compilation_pipeline(job_id: str, req: MultiVideoCompilation
                     except Exception:
                         vid_dur = 300.0
 
-                trans = transcriber.transcribe(audio_path)
+                trans = transcriber.transcribe(
+                    audio_path,
+                    video_title=info.get("title", ""),
+                    uploader=info.get("uploader", "")
+                )
                 timeline = energy_detector.analyze_audio_energy(audio_path)
 
                 # Extract the single best moment from this video
