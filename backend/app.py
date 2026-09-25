@@ -94,7 +94,14 @@ class VoiceoverRequest(BaseModel):
 @app.get("/")
 def get_index():
     from fastapi.responses import FileResponse
-    return FileResponse(STATIC_DIR / "index.html")
+    return FileResponse(
+        STATIC_DIR / "index.html",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        }
+    )
 
 import concurrent.futures
 
