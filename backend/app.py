@@ -70,6 +70,8 @@ class ProcessRequest(BaseModel):
     creator_credit: Optional[str] = None
     enable_copyright_shield: bool = True
     enable_seamless_loop: bool = True
+    auto_create_compilation: bool = True
+    ranking_header: Optional[str] = None
 
 class MultiVideoCompilationRequest(BaseModel):
     urls: List[str]                  # 2 to 5 YouTube URLs
@@ -85,6 +87,8 @@ class StitchClipsRequest(BaseModel):
     clip_ids: List[str]              # List of generated clip IDs in desired countdown order
     target_duration: int = 50
     countdown_style: str = "gold"
+    ranking_header: Optional[str] = "Ranking Best Fails of The Week"
+    clip_labels: Optional[dict] = None
 
 class VoiceoverRequest(BaseModel):
     clip_id: str
@@ -359,6 +363,85 @@ def run_processing_pipeline(job_id: str, req: ProcessRequest):
         # Sort clips back by rank
         rendered_clips.sort(key=lambda x: x["rank"])
 
+        # Auto-create Ranking Leaderboard Compilation Short if enabled
+        if req.auto_create_compilation and len(rendered_clips) >= 2:
+            try:
+                JOBS[job_id]["progress"] = 96
+                JOBS[job_id]["message"] = "Assembling Top 5 Ranking Leaderboard Short..."
+                uploader_name = info.get("uploader", "Streamer")
+                total_items = len(rendered_clips)
+
+                # Format clean ranking header
+                r_header = (req.ranking_header.strip() if req.ranking_header else "") or f"Ranking Top {total_items} Moments of {uploader_name}"
+
+                clip_labels_map = {}
+                comp_segments = []
+                per_seg_dur = max(6.0, round(50.0 / total_items, 1))
+
+                # Countdown order: #5 down to #1
+                countdown_clips = list(reversed(rendered_clips))
+                for idx, c in enumerate(countdown_clips):
+                    rank_num = total_items - idx # 5, 4, 3, 2, 1
+                    # Extract punchy tag
+                    clean_title = re.sub(r'#\w+', '', c.get("title", "")).strip()
+                    words_in_title = [w for w in clean_title.split() if w.lower() not in ["the", "a", "an", "is", "of", "and", "in", "to"]]
+                    short_tag = " ".join(words_in_title[:3]) if words_in_title else f"Moment #{rank_num}"
+                    clip_labels_map[rank_num] = short_tag
+
+                    c_file = OUTPUT_DIR / f"{c['clip_id']}.mp4"
+                    comp_segments.append({
+                        "video_path": str(c_file),
+                        "start_time": 0.0,
+                        "duration": per_seg_dur,
+                        "rank": rank_num,
+                        "words": []
+                    })
+
+                comp_id = f"{job_id}_compilation"
+                comp_filename = f"{comp_id}.mp4"
+                comp_output_path = OUTPUT_DIR / comp_filename
+
+                compilation_builder.build_compilation(
+                    clip_segments=comp_segments,
+                    output_path=str(comp_output_path),
+                    ranking_header=r_header,
+                    clip_labels=clip_labels_map,
+                    total_target_duration=50,
+                    countdown_style="gold"
+                )
+
+                comp_meta = meta_gen.generate_compilation_metadata([uploader_name], total_items)
+                comp_meta["title"] = f"TOP {total_items} {uploader_name.upper()} MOMENTS! 🔥 ({r_header})"
+                thumb_filename = f"{comp_id}_thumb.jpg"
+                thumb_path = OUTPUT_DIR / thumb_filename
+                best_frame = thumb_maker.extract_best_frame(str(comp_output_path), 2.0, 50.0)
+                thumb_maker.generate_vertical_thumbnail(best_frame, comp_meta["title"], str(thumb_path))
+
+                comp_clip_dict = {
+                    "clip_id": comp_id,
+                    "rank": 1,
+                    "is_compilation": True,
+                    "start": 0.0,
+                    "end": 50.0,
+                    "duration": 50.0,
+                    "virality_score": 99.5,
+                    "hype_score": 98.0,
+                    "transcript": f"Top {total_items} Countdown Compilation of {uploader_name}",
+                    "title": comp_meta["title"],
+                    "title_suggestions": comp_meta.get("title_suggestions", []),
+                    "description": comp_meta["description"],
+                    "tags": comp_meta["tags"],
+                    "tags_string": comp_meta["tags_string"],
+                    "creator_credit": req.creator_credit or f"@{uploader_name.replace(' ', '')}",
+                    "video_url": f"/output/{comp_filename}",
+                    "thumbnail_url": f"/output/{thumb_filename}"
+                }
+                # Prepend compilation short to top of gallery
+                rendered_clips = [comp_clip_dict] + rendered_clips
+            except Exception as comp_err:
+                print(f"[Pipeline] Auto-compilation notice: {comp_err}")
+                traceback.print_exc()
+
         JOBS[job_id]["status"] = "completed"
         JOBS[job_id]["progress"] = 100
         JOBS[job_id]["message"] = f"Successfully Generated {len(rendered_clips)} Viral Shorts!"
@@ -580,10 +663,18 @@ def stitch_gallery_clips(req: StitchClipsRequest):
     comp_filename = f"{comp_id}_compilation.mp4"
     comp_output_path = OUTPUT_DIR / comp_filename
 
+    ranking_header = (req.ranking_header.strip() if req.ranking_header else "") or f"Ranking Top {num_clips} Viral Moments"
+    clip_labels_map = req.clip_labels or {}
+    for r in range(1, num_clips + 1):
+        if r not in clip_labels_map:
+            clip_labels_map[r] = f"Highlight #{r}"
+
     try:
         compilation_builder.build_compilation(
             clip_segments=clip_segments,
             output_path=str(comp_output_path),
+            ranking_header=ranking_header,
+            clip_labels=clip_labels_map,
             total_target_duration=req.target_duration,
             countdown_style=req.countdown_style
         )

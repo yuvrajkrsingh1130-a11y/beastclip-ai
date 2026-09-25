@@ -432,6 +432,35 @@
                     </label>
                 </div>
 
+                <!-- Single Mode Auto-Create Ranking Compilation Short Toggle -->
+                <div id="singleAutoCompilationBox" class="p-3.5 rounded-xl bg-yellow-500/10 border border-yellow-500/30 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-lg bg-yellow-500/20 flex items-center justify-center text-yellow-400 flex-shrink-0">
+                                <i data-lucide="trophy" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs font-bold text-white flex items-center gap-1.5">
+                                    Auto-Create Top 5 Ranking Short
+                                    <span class="text-[9px] px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-300 font-bold border border-yellow-500/30">1-5 COUNTDOWN</span>
+                                </div>
+                                <div class="text-[10px] text-gray-400">Generates 5 clips + stitched viral 1-5 Ranking Leaderboard Short</div>
+                            </div>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer flex-shrink-0 ml-2">
+                            <input type="checkbox" id="autoStitchCompilationToggle" class="sr-only peer" checked>
+                            <div class="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-yellow-500"></div>
+                        </label>
+                    </div>
+                    <div id="singleRankingHeaderContainer" class="pt-1 border-t border-yellow-500/15">
+                        <label class="block text-[10px] font-semibold text-yellow-300/90 uppercase tracking-wider mb-1">
+                            Ranking Banner Title (Optional Custom Header):
+                        </label>
+                        <input id="singleRankingHeaderInput" type="text" placeholder="Auto-generated (e.g. Ranking Top 5 Moments of Speed)" 
+                            class="w-full bg-black/40 border border-yellow-500/25 rounded-xl px-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-yellow-400">
+                    </div>
+                </div>
+
                 <!-- Generate Buttons (Switched depending on active tab) -->
                 <div id="singleGenerateBox">
                     <button id="generateBtn" class="w-full py-4 rounded-xl glow-btn text-white font-bold text-sm flex items-center justify-center gap-2">
@@ -1038,7 +1067,7 @@
     </footer>
 
     <!-- App Logic Script -->
-    <script src="/static/js/app.js?v=3.3"></script>
+    <script src="/static/js/app.js?v=3.4"></script>
     <script>
         lucide.createIcons();
     </script>
