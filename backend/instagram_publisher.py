@@ -9,6 +9,7 @@ from backend.config import BASE_DIR
 AUTH_DIR = BASE_DIR / "auth"
 AUTH_DIR.mkdir(parents=True, exist_ok=True)
 INSTAGRAM_AUTH_FILE = AUTH_DIR / "instagram_account.json"
+INSTAGRAM_SESSION_FILE = AUTH_DIR / "instagram_session.json"
 
 class InstagramPublisher:
     def __init__(self):
@@ -36,7 +37,8 @@ class InstagramPublisher:
                 "handle": None,
                 "account_name": None,
                 "avatar": None,
-                "has_api_token": False
+                "has_api_token": False,
+                "has_direct_session": INSTAGRAM_SESSION_FILE.exists()
             }
         
         handle = self.account_data.get("handle", "")
@@ -47,8 +49,77 @@ class InstagramPublisher:
             "account_name": self.account_data.get("account_name", f"@{clean_handle}"),
             "avatar": self.account_data.get("avatar") or f"https://ui-avatars.com/api/?name={clean_handle or 'IG'}&background=E1306C&color=fff&rounded=true&bold=true",
             "has_api_token": bool(self.account_data.get("access_token")),
+            "has_direct_session": INSTAGRAM_SESSION_FILE.exists(),
             "connected_at": self.account_data.get("connected_at")
         }
+
+    def login_account(self, username: str = None, password: str = None, sessionid: str = None, verification_code: str = None) -> dict:
+        """
+        Connects an Instagram account via direct Instagram login or session cookie.
+        Saves session securely in auth/instagram_session.json for automated headless Reel uploads.
+        """
+        from instagrapi import Client
+        from instagrapi.exceptions import TwoFactorRequired, BadPassword, ChallengeRequired, PleaseWaitFewMinutes
+
+        cl = Client()
+        cl.delay_range = [1, 3]
+
+        if sessionid and sessionid.strip():
+            # Login via browser session cookie
+            clean_session = sessionid.strip()
+            try:
+                cl.login_by_sessionid(clean_session)
+                user_info = cl.account_info()
+            except Exception as e:
+                raise ValueError(f"Failed to log in with session ID: {e}")
+        elif username and password:
+            clean_user = username.strip().lstrip("@")
+            clean_pass = password.strip()
+            if INSTAGRAM_SESSION_FILE.exists():
+                try:
+                    cl.load_settings(str(INSTAGRAM_SESSION_FILE))
+                except Exception:
+                    pass
+            try:
+                if verification_code and verification_code.strip():
+                    cl.login(clean_user, clean_pass, verification_code=verification_code.strip())
+                else:
+                    cl.login(clean_user, clean_pass)
+                user_info = cl.account_info()
+            except TwoFactorRequired:
+                return {
+                    "need_2fa": True,
+                    "message": "Two-factor authentication code required. Please enter the 6-digit code sent to your phone or authenticator app."
+                }
+            except BadPassword:
+                raise ValueError("Incorrect Instagram password. Please check your credentials and try again.")
+            except ChallengeRequired as e:
+                raise ValueError(f"Instagram security checkpoint: {e}. You can alternatively use your browser's sessionid cookie.")
+            except PleaseWaitFewMinutes:
+                raise ValueError("Instagram temporarily rate-limited login requests. Please wait a few minutes or log in via sessionid.")
+            except Exception as e:
+                raise ValueError(f"Instagram login error: {e}")
+        else:
+            raise ValueError("Please provide your Instagram username and password (or sessionid cookie).")
+
+        # Save session
+        cl.dump_settings(str(INSTAGRAM_SESSION_FILE))
+
+        data = {
+            "handle": f"@{user_info.username}",
+            "account_name": user_info.full_name or user_info.username,
+            "avatar": str(user_info.profile_pic_url) if getattr(user_info, "profile_pic_url", None) else None,
+            "followers": getattr(user_info, "follower_count", 0),
+            "login_type": "direct_session",
+            "connected_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "is_connected": True
+        }
+
+        with open(INSTAGRAM_AUTH_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+
+        self.account_data = data
+        return self.get_status()
 
     def connect_account(self, handle: str, account_name: str = None, access_token: str = None, instagram_account_id: str = None) -> dict:
         clean_handle = handle.strip().lstrip("@")
@@ -80,8 +151,57 @@ class InstagramPublisher:
                 INSTAGRAM_AUTH_FILE.unlink()
             except Exception:
                 pass
+        if INSTAGRAM_SESSION_FILE.exists():
+            try:
+                INSTAGRAM_SESSION_FILE.unlink()
+            except Exception:
+                pass
         self.account_data = None
         return {"connected": False}
+
+    def upload_reel_direct(self, video_path: str, caption: str, thumbnail_path: str = None) -> dict:
+        """
+        Headlessly uploads the 1080x1920 MP4 Reel directly to the user's connected Instagram account,
+        applying the viral caption and thumbnail automatically.
+        """
+        v_path = Path(video_path)
+        if not v_path.exists():
+            raise FileNotFoundError(f"Video file not found at: {video_path}")
+
+        if not INSTAGRAM_SESSION_FILE.exists():
+            raise RuntimeError("Instagram session not found. Please log into your Instagram account in BeastClip AI first!")
+
+        from instagrapi import Client
+        cl = Client()
+        cl.delay_range = [1, 3]
+        cl.load_settings(str(INSTAGRAM_SESSION_FILE))
+
+        t_path = Path(thumbnail_path) if thumbnail_path and Path(thumbnail_path).exists() else None
+
+        print(f"[InstagramPublisher] Uploading Reel directly: {v_path.name} ({v_path.stat().st_size} bytes)...")
+        media = cl.clip_upload(
+            path=v_path,
+            caption=caption,
+            thumbnail=t_path
+        )
+
+        code = getattr(media, "code", "")
+        media_id = str(getattr(media, "pk", ""))
+        reel_url = f"https://www.instagram.com/reel/{code}/" if code else "https://www.instagram.com/"
+
+        # Refresh session dump
+        try:
+            cl.dump_settings(str(INSTAGRAM_SESSION_FILE))
+        except Exception:
+            pass
+
+        return {
+            "success": True,
+            "media_id": media_id,
+            "code": code,
+            "reel_url": reel_url,
+            "message": f"🎉 Successfully uploaded Reel to Instagram! View it at: {reel_url}"
+        }
 
     def format_reels_caption(self, title: str, creator_credit: str = None, custom_tags: list = None) -> str:
         """
@@ -125,7 +245,7 @@ Follow {clean_handle} for daily viral streamer moments! 🚀
         if not self.is_connected() or not self.account_data.get("access_token") or not self.account_data.get("instagram_account_id"):
             return {
                 "success": False,
-                "error": "Meta Graph API token or Instagram Business Account ID is missing. You can use 1-click web upload!"
+                "error": "Meta Graph API token or Instagram Business Account ID is missing."
             }
 
         token = self.account_data["access_token"]

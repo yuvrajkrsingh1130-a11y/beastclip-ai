@@ -611,43 +611,58 @@
 
                     <!-- Setup Form -->
                     <div id="instaSetupSection" class="space-y-4">
-                        <p class="text-xs text-gray-300">
-                            Enter your Instagram username or handle to link your account. BeastClip AI will format captions and hashtags tailored specifically for <strong>Instagram Reels algorithm velocity</strong>:
-                        </p>
+                        <div class="p-3 rounded-xl bg-pink-500/10 border border-pink-500/20 text-xs text-gray-300">
+                            <span class="text-pink-300 font-semibold flex items-center gap-1.5 mb-1">
+                                <i data-lucide="zap" class="w-3.5 h-3.5 text-yellow-400"></i>
+                                Automatic 1-Click Reels Publishing
+                            </span>
+                            Log into your Instagram account once. BeastClip AI saves your session locally on your PC so you can auto-upload Reels directly without downloading!
+                        </div>
 
                         <div class="space-y-3">
                             <div>
                                 <label class="block text-[11px] text-gray-300 font-semibold mb-1 flex items-center justify-between">
-                                    <span>Instagram Username / Handle</span>
+                                    <span>Instagram Username / Email</span>
                                     <span class="text-[9px] text-pink-400 font-mono">e.g. speed_clips_daily</span>
                                 </label>
                                 <div class="relative flex items-center">
                                     <span class="absolute left-3 text-gray-500 text-xs font-mono">@</span>
-                                    <input id="instaHandleInput" type="text" placeholder="your_clip_page"
+                                    <input id="instaHandleInput" type="text" placeholder="your_instagram_username"
                                         class="w-full bg-black/40 border border-white/10 rounded-xl pl-7 pr-3 py-2.5 text-xs text-white focus:outline-none focus:border-pink-500 font-mono">
                                 </div>
                             </div>
                             <div>
-                                <label class="block text-[11px] text-gray-300 font-semibold mb-1">Account Nickname (Optional)</label>
-                                <input id="instaNickInput" type="text" placeholder="e.g. Viral Reels Clips Hub"
+                                <label class="block text-[11px] text-gray-300 font-semibold mb-1">Instagram Password</label>
+                                <input id="instaPasswordInput" type="password" placeholder="••••••••••••"
                                     class="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-pink-500">
                             </div>
 
-                            <details class="text-[11px] text-gray-400 bg-white/[0.02] p-2.5 rounded-xl border border-white/5 cursor-pointer">
-                                <summary class="font-semibold text-gray-300 hover:text-pink-300">Advanced: Meta Graph API Token (Optional)</summary>
-                                <div class="space-y-2 mt-2 pt-2 border-t border-white/5">
-                                    <p class="text-[10px] text-gray-400">For direct automated headless uploading via Meta Graph API:</p>
-                                    <input id="instaAccessTokenInput" type="password" placeholder="Meta Graph Page Access Token (EAAB...)"
-                                        class="w-full bg-black/50 border border-white/10 rounded-lg px-2.5 py-1.5 text-[10px] text-white focus:outline-none focus:border-pink-500">
-                                    <input id="instaAccountIdInput" type="text" placeholder="Instagram Business/Creator Account ID"
-                                        class="w-full bg-black/50 border border-white/10 rounded-lg px-2.5 py-1.5 text-[10px] text-white focus:outline-none focus:border-pink-500">
-                                </div>
-                            </details>
+                            <!-- 2FA Code Input Box (Hidden unless triggered) -->
+                            <div id="insta2faBox" class="hidden p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-2">
+                                <label class="block text-[11px] text-amber-300 font-semibold">
+                                    🔐 Enter 2FA Verification Code (SMS or Authenticator App)
+                                </label>
+                                <input id="insta2faInput" type="text" placeholder="6-digit code (e.g. 123456)"
+                                    class="w-full bg-black/50 border border-amber-500/40 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 font-mono text-center tracking-widest">
+                            </div>
 
                             <button id="saveInstaBtn" type="button" class="w-full py-2.5 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 hover:from-pink-500 hover:to-indigo-500 rounded-xl text-xs font-bold text-white transition flex items-center justify-center gap-2 shadow-lg shadow-pink-500/20">
-                                <i data-lucide="instagram" class="w-4 h-4"></i>
-                                Link Instagram Account
+                                <i data-lucide="log-in" class="w-4 h-4"></i>
+                                <span id="saveInstaBtnText">Log In & Connect Instagram</span>
                             </button>
+
+                            <!-- Alternative connection options -->
+                            <details class="text-[11px] text-gray-400 bg-white/[0.02] p-2.5 rounded-xl border border-white/5 cursor-pointer">
+                                <summary class="font-semibold text-gray-300 hover:text-pink-300">Alternative: Session Cookie (Bypass 2FA)</summary>
+                                <div class="space-y-2 mt-2 pt-2 border-t border-white/5">
+                                    <p class="text-[10px] text-gray-400">Paste your Instagram browser session cookie (sessionid) to bypass passwords & 2FA:</p>
+                                    <input id="instaSessionCookieInput" type="password" placeholder="sessionid cookie value..."
+                                        class="w-full bg-black/50 border border-white/10 rounded-lg px-2.5 py-1.5 text-[10px] text-white focus:outline-none focus:border-pink-500 font-mono">
+                                    <button type="button" id="saveInstaSessionCookieBtn" class="w-full py-1.5 bg-white/10 hover:bg-white/15 rounded-lg text-[10px] font-bold text-gray-200">
+                                        Connect with Session Cookie
+                                    </button>
+                                </div>
+                            </details>
                         </div>
                     </div>
                 </div>
@@ -862,23 +877,43 @@
                                 class="w-full bg-black/50 border border-pink-500/30 rounded-xl p-3 text-xs text-gray-200 focus:outline-none focus:border-pink-400 font-sans"></textarea>
                         </div>
 
-                        <!-- 1-Click Publishing & Sharing Actions -->
+                        <!-- 1-Click Automated Publishing & Sharing Actions -->
                         <div class="space-y-2 pt-1">
-                            <a id="instaDownloadReelBtn" href="#" download="Instagram_Reel.mp4" class="w-full py-2.5 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 hover:from-pink-500 hover:to-indigo-500 rounded-xl text-xs font-bold text-white transition flex items-center justify-center gap-2 shadow-lg shadow-pink-500/20 text-center">
-                                <i data-lucide="download" class="w-4 h-4 text-white"></i>
-                                Download Reel (MP4) & Copy Caption
-                            </a>
+                            <button type="button" id="instaDirectPublishBtn" class="w-full py-3 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 hover:from-pink-500 hover:to-indigo-500 rounded-xl text-xs font-bold text-white transition flex items-center justify-center gap-2 shadow-lg shadow-pink-500/25 text-center cursor-pointer">
+                                <i data-lucide="zap" class="w-4 h-4 text-yellow-300"></i>
+                                <span id="instaDirectPublishBtnText">Confirm & Auto-Post to Instagram Reels</span>
+                            </button>
 
-                            <div class="grid grid-cols-2 gap-2">
-                                <a href="https://www.instagram.com/" target="_blank" class="py-2.5 px-3 bg-white/10 hover:bg-white/15 border border-white/10 rounded-xl text-xs font-bold text-gray-200 transition flex items-center justify-center gap-2 text-center">
-                                    <i data-lucide="external-link" class="w-4 h-4 text-pink-400"></i>
+                            <div class="grid grid-cols-2 gap-2 pt-1">
+                                <a id="instaDownloadReelBtn" href="#" download="Instagram_Reel.mp4" class="py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[11px] font-semibold text-gray-300 transition flex items-center justify-center gap-1.5 text-center">
+                                    <i data-lucide="download" class="w-3.5 h-3.5 text-emerald-400"></i>
+                                    Download MP4
+                                </a>
+                                <a href="https://www.instagram.com/" target="_blank" class="py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[11px] font-semibold text-gray-300 transition flex items-center justify-center gap-1.5 text-center">
+                                    <i data-lucide="external-link" class="w-3.5 h-3.5 text-pink-400"></i>
                                     Open Instagram Web
                                 </a>
-                                <button type="button" id="instaDirectPublishBtn" class="py-2.5 px-3 bg-pink-500/20 hover:bg-pink-500/30 border border-pink-500/40 rounded-xl text-xs font-bold text-pink-300 transition flex items-center justify-center gap-1.5 text-center">
-                                    <i data-lucide="zap" class="w-3.5 h-3.5 text-yellow-400"></i>
-                                    Meta API Auto-Post
-                                </button>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Instagram Publish Success State -->
+                    <div id="instaPublishSuccessSection" class="hidden text-center py-6 space-y-4">
+                        <div class="w-14 h-14 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 mx-auto">
+                            <i data-lucide="check-circle-2" class="w-8 h-8"></i>
+                        </div>
+                        <div class="space-y-1">
+                            <h3 class="text-base font-bold text-white">Reel Successfully Published! 🎉</h3>
+                            <p id="instaPublishSuccessMsg" class="text-xs text-gray-400">Your Reel is now live on your Instagram profile.</p>
+                        </div>
+                        <div class="pt-2 flex flex-col gap-2">
+                            <a id="instaPublishOpenUrlBtn" href="#" target="_blank" class="w-full py-2.5 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 rounded-xl text-xs font-bold text-white transition flex items-center justify-center gap-2 shadow-lg shadow-pink-500/20">
+                                <i data-lucide="instagram" class="w-4 h-4"></i>
+                                View Reel on Instagram
+                            </a>
+                            <button type="button" onclick="closePublishModal()" class="w-full py-2 bg-white/5 hover:bg-white/10 rounded-xl text-xs text-gray-300 transition">
+                                Close
+                            </button>
                         </div>
                     </div>
 

@@ -271,6 +271,8 @@ function initEventListeners() {
     }
     const saveInstaBtn = document.getElementById("saveInstaBtn");
     if (saveInstaBtn) saveInstaBtn.addEventListener("click", setupInstagramAccount);
+    const saveInstaCookieBtn = document.getElementById("saveInstaSessionCookieBtn");
+    if (saveInstaCookieBtn) saveInstaCookieBtn.addEventListener("click", setupInstagramSessionCookie);
     const disconnectInstaBtn = document.getElementById("disconnectInstaBtn");
     if (disconnectInstaBtn) disconnectInstaBtn.addEventListener("click", disconnectInstagramAccount);
 
@@ -1228,12 +1230,22 @@ function openPublishModal(clipId) {
     switchPublishTab("youtube");
     loadInstagramReelPreview(clipId);
 
+    // Reset Instagram state to form
+    const instaSec = document.getElementById("instaPublishSection");
+    const instaSucc = document.getElementById("instaPublishSuccessSection");
+    if (instaSec) instaSec.classList.remove("hidden");
+    if (instaSucc) instaSucc.classList.add("hidden");
+
     document.getElementById("ytPublishModal").classList.remove("hidden");
     lucide.createIcons();
 }
 
 function closePublishModal() {
     document.getElementById("ytPublishModal").classList.add("hidden");
+    const instaSec = document.getElementById("instaPublishSection");
+    const instaSucc = document.getElementById("instaPublishSuccessSection");
+    if (instaSec) instaSec.classList.remove("hidden");
+    if (instaSucc) instaSucc.classList.add("hidden");
     activePublishClipId = null;
 }
 
@@ -1515,46 +1527,123 @@ async function checkInstagramStatus() {
 
 async function setupInstagramAccount() {
     const handleInput = document.getElementById("instaHandleInput");
-    const nickInput = document.getElementById("instaNickInput");
-    const tokenInput = document.getElementById("instaAccessTokenInput");
-    const accountIdInput = document.getElementById("instaAccountIdInput");
+    const passInput = document.getElementById("instaPasswordInput");
+    const twoFaInput = document.getElementById("insta2faInput");
+    const twoFaBox = document.getElementById("insta2faBox");
+    const btn = document.getElementById("saveInstaBtn");
+    const btnText = document.getElementById("saveInstaBtnText");
 
-    const handle = handleInput ? handleInput.value.trim() : "";
-    const accountName = nickInput ? nickInput.value.trim() : "";
-    const accessToken = tokenInput ? tokenInput.value.trim() : "";
-    const instagramAccountId = accountIdInput ? accountIdInput.value.trim() : "";
+    const username = handleInput ? handleInput.value.trim() : "";
+    const password = passInput ? passInput.value.trim() : "";
+    const verificationCode = twoFaInput ? twoFaInput.value.trim() : "";
 
-    if (!handle) {
-        alert("Please enter your Instagram username or handle (e.g. speed_clips_daily)");
+    if (!username) {
+        alert("Please enter your Instagram username or email (e.g. speed_clips_daily)");
+        if (handleInput) handleInput.focus();
+        return;
+    }
+    if (!password) {
+        alert("Please enter your Instagram password.");
+        if (passInput) passInput.focus();
         return;
     }
 
+    if (btn) btn.disabled = true;
+    if (btnText) btnText.innerText = "Authenticating with Instagram...";
+
     try {
-        const res = await fetch("/api/instagram/connect", {
+        const res = await fetch("/api/instagram/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                handle: handle,
-                account_name: accountName,
-                access_token: accessToken || null,
-                instagram_account_id: instagramAccountId || null
+                username: username,
+                password: password,
+                verification_code: verificationCode || null
             })
         });
 
+        const data = await res.json();
+
         if (!res.ok) {
-            const err = await res.json();
-            throw new Error(err.detail || "Failed to link Instagram account");
+            throw new Error(data.detail || data.error || "Failed to log into Instagram");
         }
 
-        const data = await res.json();
-        showToast(`Linked ${data.handle} successfully! 🎉`);
+        if (data.need_2fa) {
+            if (twoFaBox) twoFaBox.classList.remove("hidden");
+            if (btnText) btnText.innerText = "Submit 2FA Code & Connect";
+            if (twoFaInput) twoFaInput.focus();
+            showToast("2FA code required! Enter the 6-digit code sent to your device.");
+            return;
+        }
+
+        showToast(`Connected @${(data.handle || username).replace(/^@/, '')} to BeastClip! 🎉`);
         await checkInstagramStatus();
+
+        if (passInput) passInput.value = "";
+        if (twoFaInput) twoFaInput.value = "";
+        if (twoFaBox) twoFaBox.classList.add("hidden");
+        if (btnText) btnText.innerText = "Log In & Connect Instagram";
+
         document.getElementById("instaAuthModal").classList.add("hidden");
         if (activePublishClipId) {
             loadInstagramReelPreview(activePublishClipId);
         }
     } catch (e) {
-        alert(`Instagram Connection Error: ${e.message}`);
+        alert(`Instagram Login Error: ${e.message}`);
+    } finally {
+        if (btn) btn.disabled = false;
+        if (twoFaBox && !twoFaBox.classList.contains("hidden")) {
+            if (btnText) btnText.innerText = "Submit 2FA Code & Connect";
+        } else {
+            if (btnText) btnText.innerText = "Log In & Connect Instagram";
+        }
+    }
+}
+
+async function setupInstagramSessionCookie() {
+    const cookieInput = document.getElementById("instaSessionCookieInput");
+    const btn = document.getElementById("saveInstaSessionCookieBtn");
+    const sessionid = cookieInput ? cookieInput.value.trim() : "";
+
+    if (!sessionid) {
+        alert("Please paste your Instagram 'sessionid' cookie value.");
+        if (cookieInput) cookieInput.focus();
+        return;
+    }
+
+    const originalText = btn ? btn.innerText : "";
+    if (btn) {
+        btn.disabled = true;
+        btn.innerText = "Connecting via Session Cookie...";
+    }
+
+    try {
+        const res = await fetch("/api/instagram/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sessionid: sessionid })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.detail || data.error || "Failed to log in with session cookie");
+        }
+
+        showToast(`Connected @${(data.handle || 'Instagram').replace(/^@/, '')} successfully! 🎉`);
+        await checkInstagramStatus();
+        if (cookieInput) cookieInput.value = "";
+        document.getElementById("instaAuthModal").classList.add("hidden");
+
+        if (activePublishClipId) {
+            loadInstagramReelPreview(activePublishClipId);
+        }
+    } catch (e) {
+        alert(`Instagram Session Error: ${e.message}`);
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerText = originalText;
+        }
     }
 }
 
@@ -1580,6 +1669,7 @@ function switchPublishTab(tabName) {
     const instaTab = document.getElementById("publishTabInstagram");
     const ytSection = document.getElementById("ytPublishFormSection");
     const instaSection = document.getElementById("instaPublishSection");
+    const instaSuccess = document.getElementById("instaPublishSuccessSection");
 
     if (!ytTab || !instaTab) return;
 
@@ -1587,7 +1677,11 @@ function switchPublishTab(tabName) {
         ytTab.className = "py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 text-gray-400 hover:text-red-300 hover:bg-white/5";
         instaTab.className = "py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 bg-gradient-to-r from-pink-600/30 to-purple-600/30 text-pink-200 border border-pink-500/40";
         if (ytSection) ytSection.classList.add("hidden");
-        if (instaSection) instaSection.classList.remove("hidden");
+        if (instaSuccess && !instaSuccess.classList.contains("hidden")) {
+            // Keep success section if already published
+        } else {
+            if (instaSection) instaSection.classList.remove("hidden");
+        }
         if (activePublishClipId) {
             loadInstagramReelPreview(activePublishClipId);
         }
@@ -1596,6 +1690,7 @@ function switchPublishTab(tabName) {
         instaTab.className = "py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 text-gray-400 hover:text-pink-300 hover:bg-white/5";
         if (ytSection) ytSection.classList.remove("hidden");
         if (instaSection) instaSection.classList.add("hidden");
+        if (instaSuccess) instaSuccess.classList.add("hidden");
     }
     lucide.createIcons();
 }
@@ -1656,38 +1751,66 @@ async function loadInstagramReelPreview(clipId) {
 }
 
 async function publishInstagramReelDirect() {
-    if (!activePublishClipId) return;
+    if (!activePublishClipId) {
+        alert("No clip selected for publishing.");
+        return;
+    }
     const clip = currentClipsMap[activePublishClipId];
     if (!clip) return;
 
-    const caption = document.getElementById("instaCaptionTextarea").value;
-    const btn = document.getElementById("instaDirectPublishBtn");
-    const originalText = btn.innerHTML;
+    if (!connectedInstagramData || !connectedInstagramData.connected) {
+        if (confirm("Instagram account is not connected yet. Would you like to connect it now?")) {
+            document.getElementById("instaAuthModal").classList.remove("hidden");
+        }
+        return;
+    }
 
-    btn.disabled = true;
-    btn.innerHTML = `<span class="animate-spin inline-block mr-1">⏳</span> Publishing Reel...`;
+    const captionEl = document.getElementById("instaCaptionTextarea");
+    const caption = captionEl ? captionEl.value : "";
+    const btn = document.getElementById("instaDirectPublishBtn");
+    const btnText = document.getElementById("instaDirectPublishBtnText");
+    const originalText = btnText ? btnText.innerText : "Confirm & Auto-Post to Instagram Reels";
+
+    if (btn) btn.disabled = true;
+    if (btnText) btnText.innerHTML = `<span class="animate-spin inline-block mr-1.5">⏳</span> Uploading to Instagram Reels... (takes ~15s)`;
 
     try {
-        const res = await fetch("/api/instagram/publish-reel", {
+        const res = await fetch("/api/instagram/upload-reel", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                video_url: clip.video_url,
+                clip_id: activePublishClipId,
                 caption: caption
             })
         });
+
         const data = await res.json();
 
-        if (data.success) {
-            alert(`🎉 Instagram Reel published successfully!\nReel ID: ${data.media_id || 'Posted'}`);
-        } else {
-            alert(`ℹ️ Meta API Upload Notice: ${data.error || 'Failed to auto-post'}\n\nTip: You can 1-click Download Reel & Copy Caption, then upload directly to Instagram!`);
+        if (!res.ok || !data.success) {
+            throw new Error(data.detail || data.error || "Failed to upload Reel to Instagram");
         }
+
+        // Show Success Section
+        const pubSection = document.getElementById("instaPublishSection");
+        const successSection = document.getElementById("instaPublishSuccessSection");
+        const openUrlBtn = document.getElementById("instaPublishOpenUrlBtn");
+        const msgEl = document.getElementById("instaPublishSuccessMsg");
+
+        if (pubSection) pubSection.classList.add("hidden");
+        if (successSection) successSection.classList.remove("hidden");
+        if (openUrlBtn && data.reel_url) {
+            openUrlBtn.href = data.reel_url;
+        }
+        if (msgEl && data.reel_url) {
+            msgEl.innerText = `Reel published successfully! Click below to view live on Instagram.`;
+        }
+
+        showToast("🎉 Instagram Reel successfully published!");
     } catch (e) {
-        alert(`Failed to publish via Meta API: ${e.message}\n\nYou can use the 1-click Download Reel & Copy Caption button instead!`);
+        alert(`❌ Instagram Auto-Post Error:\n${e.message}\n\nTip: You can use 'Download MP4' + 'Copy Reels Caption' as a manual backup.`);
     } finally {
-        btn.disabled = false;
-        btn.innerHTML = originalText;
+        if (btn) btn.disabled = false;
+        if (btnText) btnText.innerText = originalText;
     }
 }
 

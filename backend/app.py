@@ -996,6 +996,50 @@ def prepare_instagram_reel(req: dict):
         "account": insta_publisher.get_status()
     }
 
+@app.post("/api/instagram/login")
+def login_instagram(req: dict):
+    """Logs into Instagram using direct credentials or sessionid cookie."""
+    username = req.get("username")
+    password = req.get("password")
+    sessionid = req.get("sessionid")
+    verification_code = req.get("verification_code")
+
+    try:
+        res = insta_publisher.login_account(
+            username=username,
+            password=password,
+            sessionid=sessionid,
+            verification_code=verification_code
+        )
+        return res
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/instagram/upload-reel")
+def upload_instagram_reel(req: dict):
+    """Automatically uploads a generated clip directly to Instagram Reels."""
+    clip_id = req.get("clip_id")
+    caption = req.get("caption", "")
+    if not clip_id:
+        raise HTTPException(status_code=400, detail="Missing clip_id")
+
+    video_path = OUTPUT_DIR / f"{clip_id}.mp4"
+    if not video_path.exists():
+        raise HTTPException(status_code=404, detail=f"Clip video file not found: {clip_id}.mp4")
+
+    thumb_path = OUTPUT_DIR / f"{clip_id}_thumb.jpg"
+    thumb_str = str(thumb_path) if thumb_path.exists() else None
+
+    try:
+        res = insta_publisher.upload_reel_direct(
+            video_path=str(video_path),
+            caption=caption,
+            thumbnail_path=thumb_str
+        )
+        return res
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 @app.post("/api/instagram/publish-reel")
 def publish_instagram_reel(req: dict):
     """Publishes Reel directly via Meta Graph API if access token exists."""
