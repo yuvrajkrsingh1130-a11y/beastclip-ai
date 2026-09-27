@@ -221,7 +221,7 @@ class YouTubeDownloader:
         cmd = base_cmd + [
             "--download-sections", f"*{start_sec}-{end_sec}",
             "--force-keyframes-at-cuts",
-            "-f", "18/best[ext=mp4][height<=720]/best[height<=1080]/best",
+            "-f", "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/best[height<=1080]/best",
             "--merge-output-format", "mp4",
             "-o", str(clip_section_path),
             url
@@ -233,7 +233,7 @@ class YouTubeDownloader:
             # Try secondary format if primary merge failed
             cmd_fallback = base_cmd + [
                 "--download-sections", f"*{start_sec}-{end_sec}",
-                "-f", "best[height<=720]/best",
+                "-f", "bestvideo[height<=1080]+bestaudio/best[height<=1080]/best",
                 "--merge-output-format", "mp4",
                 "-o", str(clip_section_path),
                 url
@@ -249,7 +249,7 @@ class YouTubeDownloader:
 
     def download_video_and_audio(self, url: str, video_id: str = None) -> dict:
         """
-        Optimized downloader: For shorter videos, downloads 720p/1080p fast.
+        Optimized downloader: For shorter videos, downloads 1080p fast.
         For long streams, downloads audio track first for instant scanning.
         """
         if not video_id:
@@ -277,9 +277,9 @@ class YouTubeDownloader:
             try:
                 subprocess.run(download_cmd, check=True, capture_output=True, env=dict(os.environ, PYTHONIOENCODING="utf-8"))
             except Exception as e:
-                safe_log(f"[Downloader] 1080p download notice: {e}, falling back to 720p/best...")
+                safe_log(f"[Downloader] 1080p download notice: {e}, falling back to best format...")
                 fallback_cmd = base_cmd + [
-                    "-f", "best[height<=720]/best",
+                    "-f", "best[height<=1080]/best",
                     "--merge-output-format", "mp4",
                     "-o", str(video_path),
                     url

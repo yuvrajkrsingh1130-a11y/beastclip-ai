@@ -37,6 +37,8 @@ document.addEventListener("DOMContentLoaded", () => {
     checkInstagramStatus();
 });
 
+let currentActivePresetKey = null;
+
 function initPresets() {
     document.querySelectorAll(".preset-btn").forEach(btn => {
         btn.addEventListener("click", () => {
@@ -44,10 +46,28 @@ function initPresets() {
             selectStreamerPreset(key, btn);
         });
     });
+
+    const refreshStreamsBtn = document.getElementById("refreshPresetStreamsBtn");
+    if (refreshStreamsBtn) {
+        refreshStreamsBtn.addEventListener("click", async () => {
+            const targetKey = currentActivePresetKey || "ishowspeed";
+            const icon = refreshStreamsBtn.querySelector("i");
+            if (icon) icon.classList.add("animate-spin");
+
+            const activeBtn = document.querySelector(`.preset-btn[data-preset="${targetKey}"]`);
+            await selectStreamerPreset(targetKey, activeBtn, true);
+
+            setTimeout(() => {
+                if (icon) icon.classList.remove("animate-spin");
+            }, 500);
+        });
+    }
 }
 
-async function selectStreamerPreset(key, btnElement) {
+async function selectStreamerPreset(key, btnElement, isRandomizeClick = false) {
     try {
+        currentActivePresetKey = key;
+
         // Highlight active preset button
         document.querySelectorAll(".preset-btn").forEach(b => {
             b.classList.remove("ring-2", "ring-indigo-500", "bg-indigo-600/30", "border-indigo-400");
@@ -56,8 +76,8 @@ async function selectStreamerPreset(key, btnElement) {
             btnElement.classList.add("ring-2", "ring-indigo-500", "bg-indigo-600/30", "border-indigo-400");
         }
 
-        // Fetch streamer metadata + top viral streams from backend
-        const res = await fetch(`/api/streamer-preset/${key}`);
+        // Fetch streamer metadata + randomized viral streams from backend
+        const res = await fetch(`/api/streamer-preset/${key}?refresh=true&t=${Date.now()}`);
         if (!res.ok) throw new Error("Could not fetch streamer preset");
         const data = await res.json();
 
@@ -85,7 +105,7 @@ async function selectStreamerPreset(key, btnElement) {
             }
         }
 
-        // 4. Auto-populate URL and Video Preview with the #1 Top Viral Stream
+        // 4. Auto-populate URL and Video Preview with the randomized Top Viral Stream
         const bestVid = data.best_video || (data.videos && data.videos[0]);
         if (bestVid) {
             applyStreamerVideo(bestVid, data.handle);
@@ -94,7 +114,11 @@ async function selectStreamerPreset(key, btnElement) {
         // 5. Render Stream Selection Chips Strip
         renderStreamerStreamsList(data);
 
-        showToast(`⚡ Loaded top clip-ready stream for ${data.name}!`);
+        if (isRandomizeClick) {
+            showToast(`🎲 Fresh randomized viral streams loaded for ${data.name}!`);
+        } else {
+            showToast(`⚡ Loaded fresh stream for ${data.name}!`);
+        }
 
     } catch (e) {
         console.error("Preset load error:", e);
@@ -616,6 +640,7 @@ async function startMultiVideoCompilation() {
     const countdownStyle = document.getElementById("compilationStyleSelect").value;
     const layout = document.querySelector('input[name="layout"]:checked')?.value || "split_screen";
     const subtitleStyle = document.querySelector('input[name="subStyle"]:checked')?.value || "hormozi";
+    const captionSize = document.querySelector('input[name="captionSize"]:checked')?.value || "slightly_big";
     const creatorCredit = document.getElementById("creatorCreditInput").value.trim();
 
     const genBtn = document.getElementById("generateCompilationBtn");
@@ -640,6 +665,7 @@ async function startMultiVideoCompilation() {
                 target_duration: targetDuration,
                 countdown_style: countdownStyle,
                 subtitle_style: subtitleStyle,
+                caption_size: captionSize,
                 layout: layout,
                 creator_credit: creatorCredit || null
             })
@@ -799,6 +825,7 @@ async function startClipGeneration() {
 
     const layout = document.querySelector('input[name="layout"]:checked')?.value || "split_screen";
     const subtitleStyle = document.querySelector('input[name="subStyle"]:checked')?.value || "hormozi";
+    const captionSize = document.querySelector('input[name="captionSize"]:checked')?.value || "slightly_big";
     const targetDuration = parseInt(document.getElementById("clipDurationSelect").value, 10);
     const numClips = parseInt(document.getElementById("clipCountSelect").value, 10);
     const creatorCredit = document.getElementById("creatorCreditInput").value.trim();
@@ -824,6 +851,7 @@ async function startClipGeneration() {
                 target_duration: targetDuration,
                 num_clips: numClips,
                 subtitle_style: subtitleStyle,
+                caption_size: captionSize,
                 layout: layout,
                 creator_credit: creatorCredit || null,
                 enable_copyright_shield: true,

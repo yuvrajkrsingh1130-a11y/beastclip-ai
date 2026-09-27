@@ -59,23 +59,23 @@ class VideoRenderer:
         # Build Video Filter Graph (Split Screen default, or PiP, or Blurred)
         if layout == "gaming_pip":
             vf = (
-                f"[0:v]setpts=PTS-STARTPTS,scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920[bg];"
-                f"[0:v]setpts=PTS-STARTPTS,crop=w={crop_cam_w}:h={crop_cam_h}:x='{crop_cam_x}':y='{crop_cam_y}',scale=380:440:force_original_aspect_ratio=increase,crop=380:440[cam];"
+                f"[0:v]setpts=PTS-STARTPTS,scale=1080:1920:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:1920[bg];"
+                f"[0:v]setpts=PTS-STARTPTS,crop=w={crop_cam_w}:h={crop_cam_h}:x='{crop_cam_x}':y='{crop_cam_y}',scale=380:440:force_original_aspect_ratio=increase:flags=lanczos,crop=380:440[cam];"
                 f"[bg][cam]overlay=W-w-36:48[merged];"
                 f"[merged]subtitles='{escaped_ass}'[v]"
             )
         elif layout == "blurred_backdrop":
             vf = (
-                f"[0:v]setpts=PTS-STARTPTS,scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,gblur=sigma=28[bg];"
-                f"[0:v]setpts=PTS-STARTPTS,scale=1080:608:force_original_aspect_ratio=decrease[fg];"
+                f"[0:v]setpts=PTS-STARTPTS,scale=1080:1920:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:1920,gblur=sigma=28[bg];"
+                f"[0:v]setpts=PTS-STARTPTS,scale=1080:608:force_original_aspect_ratio=decrease:flags=lanczos[fg];"
                 f"[bg][fg]overlay=(W-w)/2:(H-h)/2[merged];"
                 f"[merged]subtitles='{escaped_ass}'[v]"
             )
         else:
             # Default: Clean Split Screen (Cam Top + Gameplay/Screen Bottom)
             vf = (
-                f"[0:v]setpts=PTS-STARTPTS,crop=w={crop_cam_w}:h={crop_cam_h}:x='{crop_cam_x}':y='{crop_cam_y}',scale=1080:960:force_original_aspect_ratio=increase,crop=1080:960[top];"
-                f"[0:v]setpts=PTS-STARTPTS,crop=w={crop_screen_w}:h={crop_screen_h}:x='{crop_screen_x}':y='{crop_screen_y}',scale=1080:960:force_original_aspect_ratio=increase,crop=1080:960[bot];"
+                f"[0:v]setpts=PTS-STARTPTS,crop=w={crop_cam_w}:h={crop_cam_h}:x='{crop_cam_x}':y='{crop_cam_y}',scale=1080:960:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:960[top];"
+                f"[0:v]setpts=PTS-STARTPTS,crop=w={crop_screen_w}:h={crop_screen_h}:x='{crop_screen_x}':y='{crop_screen_y}',scale=1080:960:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:960[bot];"
                 f"[top][bot]vstack=inputs=2[stacked];"
                 f"[stacked]subtitles='{escaped_ass}'[v]"
             )
@@ -94,11 +94,14 @@ class VideoRenderer:
             "-af", audio_filter,
             "-c:v", "libx264",
             "-pix_fmt", "yuv420p",
-            "-preset", "ultrafast",
-            "-crf", "22",
+            "-preset", "veryfast",
+            "-crf", "18",
+            "-b:v", "6500k",
+            "-maxrate", "9000k",
+            "-bufsize", "14000k",
             "-threads", "4",
             "-c:a", "aac",
-            "-b:a", "192k",
+            "-b:a", "256k",
             "-movflags", "+faststart",
             str(output_clip_path)
         ]
@@ -108,7 +111,7 @@ class VideoRenderer:
         if res.returncode != 0:
             print(f"[VideoRenderer] Main render notice: {res.stderr[:200]}")
             fallback_vf = (
-                f"[0:v]setpts=PTS-STARTPTS,scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,"
+                f"[0:v]setpts=PTS-STARTPTS,scale=1080:1920:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:1920,"
                 f"subtitles='{escaped_ass}'[v]"
             )
             fallback_cmd = [
@@ -122,11 +125,14 @@ class VideoRenderer:
                 "-af", audio_filter,
                 "-c:v", "libx264",
                 "-pix_fmt", "yuv420p",
-                "-preset", "ultrafast",
-                "-crf", "22",
+                "-preset", "veryfast",
+                "-crf", "18",
+                "-b:v", "6500k",
+                "-maxrate", "9000k",
+                "-bufsize", "14000k",
                 "-threads", "4",
                 "-c:a", "aac",
-                "-b:a", "192k",
+                "-b:a", "256k",
                 "-movflags", "+faststart",
                 str(output_clip_path)
             ]

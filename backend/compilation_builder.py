@@ -220,7 +220,7 @@ class CompilationBuilder:
                     escaped_ass = f"{drive[0]}\\:{rest}"
 
             vf_seg = (
-                f"scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,"
+                f"scale=1080:1920:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:1920,"
                 f"subtitles='{escaped_ass}'"
             )
             af_seg = (
@@ -240,10 +240,11 @@ class CompilationBuilder:
                 "-map", "0:a?",
                 "-af", af_seg,
                 "-c:v", "libx264",
-                "-preset", "ultrafast",
-                "-crf", "22",
+                "-preset", "veryfast",
+                "-crf", "18",
+                "-b:v", "6500k",
                 "-c:a", "aac",
-                "-b:a", "192k",
+                "-b:a", "256k",
                 str(part_out)
             ]
 
@@ -268,11 +269,12 @@ class CompilationBuilder:
             "-i", str(concat_list_file),
             "-c:v", "libx264",
             "-pix_fmt", "yuv420p",
-            "-preset", "ultrafast",
-            "-crf", "22",
+            "-preset", "veryfast",
+            "-crf", "18",
+            "-b:v", "6500k",
             "-threads", "4",
             "-c:a", "aac",
-            "-b:a", "192k",
+            "-b:a", "256k",
             "-movflags", "+faststart",
             str(output_path)
         ]

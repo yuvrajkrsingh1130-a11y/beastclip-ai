@@ -54,9 +54,10 @@ def clean_word_text(raw: str) -> str:
     return re.sub(r'[\r\n\t]+', ' ', str(raw)).strip()
 
 class SubtitleGenerator:
-    def __init__(self, preset_name: str = "hormozi"):
+    def __init__(self, preset_name: str = "hormozi", caption_size: str = "slightly_big"):
         self.preset_name = preset_name
         self.preset = SUBTITLE_PRESETS.get(preset_name, SUBTITLE_PRESETS["hormozi"])
+        self.caption_size = caption_size or "slightly_big"
 
     def create_ass_subtitles(
         self,
@@ -67,16 +68,26 @@ class SubtitleGenerator:
         max_words_per_line: int = 2
     ):
         """
-        Generates ultra-fast, frame-perfect kinetic captions (1-2 words per pulse),
-        matching high-retention creator formats (IShowSpeed, Kai Cenat, MrBeast).
+        Generates frame-perfect kinetic captions sized perfectly for mobile screens
+        (TikTok, YouTube Shorts, Instagram Reels), matching creator formats (IShowSpeed, Kai Cenat, MrBeast).
         """
         fontname = self.preset.get("fontname", "Arial Black")
-        fontsize = int(self.preset.get("fontsize", 24) * 2.2)  # ~52px
+        base_size = self.preset.get("fontsize", 25)
+
+        # Scale font size prominently for 1080x1920 canvas so captions are never too small
+        if self.caption_size == "medium":
+            scale_mult = 3.1   # ~76-78px (Clean & balanced)
+        elif self.caption_size == "large":
+            scale_mult = 4.0   # ~96-100px (Extra big / high impact)
+        else: # "slightly_big" (default recommended)
+            scale_mult = 3.55  # ~86-90px (Perfect prominent mobile size)
+
+        fontsize = int(base_size * scale_mult)
         primary_color = self.preset.get("primary_color", "&H00FFFFFF&")
         highlight_color = self.preset.get("highlight_color", "&H0000FFFF&")
         outline_color = self.preset.get("outline_color", "&H00000000&")
-        outline_width = 4.5
-        shadow_width = 2.0
+        outline_width = 6.0
+        shadow_width = 3.0
         all_caps = self.preset.get("all_caps", True)
         emojis_enabled = self.preset.get("emojis", True)
 
@@ -93,8 +104,8 @@ PlayResY: 1920
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,{fontname},{fontsize},{primary_color},&H000000FF&,{outline_color},&HB0000000&,-1,0,0,0,100,100,1,0,1,{outline_width},{shadow_width},2,40,40,360,1
-Style: CreditBadge,Arial,26,&H00FFFFFF&,&H000000FF&,&H00000000&,&H90000000&,-1,0,0,0,100,100,0,0,1,3,2,8,40,40,90,1
+Style: Default,{fontname},{fontsize},{primary_color},&H000000FF&,{outline_color},&HB0000000&,-1,0,0,0,100,100,1,0,1,{outline_width},{shadow_width},2,40,40,420,1
+Style: CreditBadge,Arial,28,&H00FFFFFF&,&H000000FF&,&H00000000&,&H90000000&,-1,0,0,0,100,100,0,0,1,3,2,8,40,40,100,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text

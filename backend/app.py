@@ -1,6 +1,7 @@
 import os
 import sys
 import uuid
+import random
 import asyncio
 import json
 import traceback
@@ -68,6 +69,7 @@ class ProcessRequest(BaseModel):
     target_duration: int = 40        # 30, 40, 60 seconds
     num_clips: int = 5               # 3, 5, 10, 15
     subtitle_style: str = "hormozi"  # hormozi, beast, neon, fire_red
+    caption_size: str = "slightly_big" # medium, slightly_big, large
     layout: str = "split_screen"     # split_screen (default), gaming_pip, blurred_backdrop
     creator_credit: Optional[str] = None
     enable_copyright_shield: bool = True
@@ -80,6 +82,7 @@ class MultiVideoCompilationRequest(BaseModel):
     target_duration: int = 50        # 40, 50, 60 seconds
     countdown_style: str = "gold"    # gold, cyber, fire, beast
     subtitle_style: str = "hormozi"
+    caption_size: str = "slightly_big"
     layout: str = "split_screen"
     creator_credit: Optional[str] = None
 
@@ -120,16 +123,24 @@ def get_presets():
     }
 
 @app.get("/api/streamer-preset/{streamer_id}")
-def get_streamer_preset_feed(streamer_id: str):
+def get_streamer_preset_feed(streamer_id: str, refresh: bool = False):
     """
     Returns curated top viral videos and channel metadata for a streamer preset.
-    Instantly auto-fills URL, credit, subtitle styling, and layout.
+    Shuffles and randomizes videos on every request/refresh so the user gets
+    fresh, diverse stream choices every time.
     """
     preset = CREATOR_PRESETS.get(streamer_id.lower())
     if not preset:
         raise HTTPException(status_code=404, detail="Streamer preset not found")
 
-    videos = list(preset.get("featured_videos", []))
+    all_videos = list(preset.get("featured_videos", []))
+    if all_videos:
+        shuffled = list(all_videos)
+        random.shuffle(shuffled)
+        videos = shuffled[:6]
+    else:
+        videos = []
+
     best_video = videos[0] if videos else None
 
     return {
@@ -141,7 +152,8 @@ def get_streamer_preset_feed(streamer_id: str):
         "recommended_layout": preset.get("recommended_layout", "split_screen"),
         "tags": preset.get("tags", []),
         "videos": videos,
-        "best_video": best_video
+        "best_video": best_video,
+        "total_available": len(all_videos)
     }
 
 @app.post("/api/extract-info")
@@ -389,7 +401,7 @@ def run_processing_pipeline(job_id: str, req: ProcessRequest):
         JOBS[job_id]["message"] = f"Parallel Rendering {len(selected_clips)} 9:16 Shorts with dynamic captions..."
 
         face_tracker = FaceTracker()
-        sub_generator = SubtitleGenerator(req.subtitle_style)
+        sub_generator = SubtitleGenerator(req.subtitle_style, caption_size=getattr(req, "caption_size", "slightly_big"))
         renderer = VideoRenderer()
         meta_gen = MetadataGenerator()
         thumb_maker = ThumbnailMaker()
@@ -460,7 +472,7 @@ def run_multi_video_compilation_pipeline(job_id: str, req: MultiVideoCompilation
         energy_detector = AudioEnergyDetector()
         clip_extractor = ClipExtractor(energy_detector)
         face_tracker = FaceTracker()
-        sub_generator = SubtitleGenerator(req.subtitle_style)
+        sub_generator = SubtitleGenerator(req.subtitle_style, caption_size=getattr(req, "caption_size", "slightly_big"))
         renderer = VideoRenderer()
         meta_gen = MetadataGenerator()
         thumb_maker = ThumbnailMaker()
