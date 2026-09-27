@@ -148,14 +148,6 @@ CREATOR_PRESETS = {
         "tags": ["#Shorts", "#IShowSpeed", "#Speed", "#Ronaldo", "#CristianoRonaldo", "#CR7", "#SIUUU", "#Viral", "#Trending", "#FYP", "#Football", "#TwitchClips", "#FunnyMoments", "#SpeedShorts"],
         "featured_videos": [
             {
-                "id": "cORnEmFk4JM",
-                "title": "iShowSpeed Eats Everything At The One Piece Cafe!",
-                "url": "https://www.youtube.com/watch?v=cORnEmFk4JM",
-                "thumbnail": "https://i.ytimg.com/vi/cORnEmFk4JM/hqdefault.jpg",
-                "duration": "27 mins",
-                "badge": "🔥 Viral Food Climax"
-            },
-            {
                 "id": "GfCnZ8cAYvQ",
                 "title": "JOIN THIS STREAM, WIN AN IPHONE 18!",
                 "url": "https://www.youtube.com/watch?v=GfCnZ8cAYvQ",
@@ -172,76 +164,52 @@ CREATOR_PRESETS = {
                 "badge": "😂 Store Chaos & Rage"
             },
             {
-                "id": "9OhywUe7FzE",
-                "title": "iShowSpeed Meets Cristiano Ronaldo In Real Life!",
-                "url": "https://www.youtube.com/watch?v=9OhywUe7FzE",
-                "thumbnail": "https://i.ytimg.com/vi/9OhywUe7FzE/hqdefault.jpg",
-                "duration": "35 mins",
-                "badge": "🐐 The Historic Meeting"
+                "id": "dV0OgeSbYPM",
+                "title": "I GOT FC27 EARLY!",
+                "url": "https://www.youtube.com/watch?v=dV0OgeSbYPM",
+                "thumbnail": "https://i.ytimg.com/vi/dV0OgeSbYPM/hqdefault.jpg",
+                "duration": "3h 27m",
+                "badge": "⚽ FC 27 Early Access"
             },
             {
-                "id": "mQeK6g9jZpk",
-                "title": "iShowSpeed IRL Stream In South Korea!",
-                "url": "https://www.youtube.com/watch?v=mQeK6g9jZpk",
-                "thumbnail": "https://i.ytimg.com/vi/mQeK6g9jZpk/hqdefault.jpg",
-                "duration": "4h 12m",
-                "badge": "🇰🇷 Seoul Fan Mania"
+                "id": "WwZx1LvNwas",
+                "title": "LIT STREAM + IRL OHIO STATE VS TEXAS",
+                "url": "https://www.youtube.com/watch?v=WwZx1LvNwas",
+                "thumbnail": "https://i.ytimg.com/vi/WwZx1LvNwas/hqdefault.jpg",
+                "duration": "1h 51m",
+                "badge": "🏈 IRL College Football"
             },
             {
-                "id": "f3j_tF0WbZs",
-                "title": "iShowSpeed Plays Five Nights At Freddy's Security Breach",
-                "url": "https://www.youtube.com/watch?v=f3j_tF0WbZs",
-                "thumbnail": "https://i.ytimg.com/vi/f3j_tF0WbZs/hqdefault.jpg",
-                "duration": "2h 21m",
-                "badge": "😱 Pure Terror Jumpscares"
+                "id": "5CPAtEmHAio",
+                "title": "REVEALING THE NEW iPHONE!",
+                "url": "https://www.youtube.com/watch?v=5CPAtEmHAio",
+                "thumbnail": "https://i.ytimg.com/vi/5CPAtEmHAio/hqdefault.jpg",
+                "duration": "2h 08m",
+                "badge": "📱 New iPhone Reveal"
             },
             {
-                "id": "X7c5l-uIu8Q",
-                "title": "iShowSpeed Plays Talking Ben (HE SAID YES?!)",
-                "url": "https://www.youtube.com/watch?v=X7c5l-uIu8Q",
-                "thumbnail": "https://i.ytimg.com/vi/X7c5l-uIu8Q/hqdefault.jpg",
-                "duration": "1h 14m",
-                "badge": "🐶 Legendary Talking Ben"
+                "id": "4zVFht1KbnY",
+                "title": "WORLD TALENT SHOW",
+                "url": "https://www.youtube.com/watch?v=4zVFht1KbnY",
+                "thumbnail": "https://i.ytimg.com/vi/4zVFht1KbnY/hqdefault.jpg",
+                "duration": "3h 13m",
+                "badge": "🎤 World Talent Show"
             },
             {
-                "id": "pYj6N8wO3y0",
-                "title": "iShowSpeed IRL Stream In Brazil Favela!",
-                "url": "https://www.youtube.com/watch?v=pYj6N8wO3y0",
-                "thumbnail": "https://i.ytimg.com/vi/pYj6N8wO3y0/hqdefault.jpg",
-                "duration": "3h 40m",
-                "badge": "🇧🇷 Rio Favela Madness"
+                "id": "glOhY5hiOwI",
+                "title": "JOIN THIS STREM MESSI RETIRED",
+                "url": "https://www.youtube.com/watch?v=glOhY5hiOwI",
+                "thumbnail": "https://i.ytimg.com/vi/glOhY5hiOwI/hqdefault.jpg",
+                "duration": "3h 08m",
+                "badge": "🐐 Messi Retirement Stream"
             },
             {
-                "id": "tKp7b7v9YnQ",
-                "title": "iShowSpeed IRL Stream In Japan!",
-                "url": "https://www.youtube.com/watch?v=tKp7b7v9YnQ",
-                "thumbnail": "https://i.ytimg.com/vi/tKp7b7v9YnQ/hqdefault.jpg",
-                "duration": "4h 30m",
-                "badge": "🇯🇵 Tokyo Fan Stampede"
-            },
-            {
-                "id": "rW8n3Xv0YzA",
-                "title": "iShowSpeed Sidemen Charity Match 2023 Highlights",
-                "url": "https://www.youtube.com/watch?v=rW8n3Xv0YzA",
-                "thumbnail": "https://i.ytimg.com/vi/rW8n3Xv0YzA/hqdefault.jpg",
-                "duration": "45 mins",
-                "badge": "⚽ Sidemen Match Chaos"
-            },
-            {
-                "id": "k9V2mP4x8Tw",
-                "title": "iShowSpeed Tries Extreme Spicy Korean 2X Buldak",
-                "url": "https://www.youtube.com/watch?v=k9V2mP4x8Tw",
-                "thumbnail": "https://i.ytimg.com/vi/k9V2mP4x8Tw/hqdefault.jpg",
-                "duration": "28 mins",
-                "badge": "🌶️ Fire Noodle Agony"
-            },
-            {
-                "id": "gP8v4W2k7Zc",
-                "title": "iShowSpeed in WWE Royal Rumble Highlights!",
-                "url": "https://www.youtube.com/watch?v=gP8v4W2k7Zc",
-                "thumbnail": "https://i.ytimg.com/vi/gP8v4W2k7Zc/hqdefault.jpg",
-                "duration": "32 mins",
-                "badge": "🤼 RKO Announce Table"
+                "id": "gYzuuGvuvyE",
+                "title": "Minecraft, But Chat Controls My Game..",
+                "url": "https://www.youtube.com/watch?v=gYzuuGvuvyE",
+                "thumbnail": "https://i.ytimg.com/vi/gYzuuGvuvyE/hqdefault.jpg",
+                "duration": "1h 12m",
+                "badge": "⛏️ Chat Controls Minecraft"
             }
         ]
     },
@@ -278,68 +246,44 @@ CREATOR_PRESETS = {
                 "badge": "🔥 High Energy NYC"
             },
             {
-                "id": "W5Y6k2Z9vPx",
-                "title": "Kai Cenat & Kevin Hart Live Stream Madness!",
-                "url": "https://www.youtube.com/watch?v=W5Y6k2Z9vPx",
-                "thumbnail": "https://i.ytimg.com/vi/W5Y6k2Z9vPx/hqdefault.jpg",
-                "duration": "2h 45m",
-                "badge": "🏆 Kevin Hart Collab"
+                "id": "XHtCaYLWpI0",
+                "title": "I Visited Unexplored Places In Iceland",
+                "url": "https://www.youtube.com/watch?v=XHtCaYLWpI0",
+                "thumbnail": "https://i.ytimg.com/vi/XHtCaYLWpI0/hqdefault.jpg",
+                "duration": "1h 01m",
+                "badge": "🇮🇸 Iceland Exploration"
             },
             {
-                "id": "bL3v8W9r0Pq",
-                "title": "Kai Cenat & Druski Hilarious Stream Moments",
-                "url": "https://www.youtube.com/watch?v=bL3v8W9r0Pq",
-                "thumbnail": "https://i.ytimg.com/vi/bL3v8W9r0Pq/hqdefault.jpg",
-                "duration": "3h 10m",
-                "badge": "💀 Druski x Kai Roast"
+                "id": "T0rA72MDRYM",
+                "title": "I Hosted The Biggest Streamer Among Us Lobby...",
+                "url": "https://www.youtube.com/watch?v=T0rA72MDRYM",
+                "thumbnail": "https://i.ytimg.com/vi/T0rA72MDRYM/hqdefault.jpg",
+                "duration": "1h 22m",
+                "badge": "🚀 Among Us Mega Lobby"
             },
             {
-                "id": "gT9k1X4r7Wz",
-                "title": "Kai Cenat 7 Days In Jail Stream Marathon",
-                "url": "https://www.youtube.com/watch?v=gT9k1X4r7Wz",
-                "thumbnail": "https://i.ytimg.com/vi/gT9k1X4r7Wz/hqdefault.jpg",
-                "duration": "4h 50m",
-                "badge": "🔒 Prison Stream Event"
+                "id": "JheRzFxeSBg",
+                "title": "Blind, Deaf, Mute Challenge With Tota & Ray!",
+                "url": "https://www.youtube.com/watch?v=JheRzFxeSBg",
+                "thumbnail": "https://i.ytimg.com/vi/JheRzFxeSBg/hqdefault.jpg",
+                "duration": "38 mins",
+                "badge": "🙈 Blind Deaf Mute Challenge"
             },
             {
-                "id": "mK2v7R9w4Xp",
-                "title": "Kai Cenat Beats Elden Ring Final Boss!",
-                "url": "https://www.youtube.com/watch?v=mK2v7R9w4Xp",
-                "thumbnail": "https://i.ytimg.com/vi/mK2v7R9w4Xp/hqdefault.jpg",
-                "duration": "2h 30m",
-                "badge": "🎮 Elden Ring Scream"
+                "id": "C47hqdcI-aE",
+                "title": "STREAMER LAST TO FALL ASLEEP CHALLENGE",
+                "url": "https://www.youtube.com/watch?v=C47hqdcI-aE",
+                "thumbnail": "https://i.ytimg.com/vi/C47hqdcI-aE/hqdefault.jpg",
+                "duration": "1h 47m",
+                "badge": "😴 Sleep Challenge"
             },
             {
-                "id": "pL8w3X1v9Qr",
-                "title": "Kai Cenat & Nicki Minaj Live On Stream!",
-                "url": "https://www.youtube.com/watch?v=pL8w3X1v9Qr",
-                "thumbnail": "https://i.ytimg.com/vi/pL8w3X1v9Qr/hqdefault.jpg",
-                "duration": "1h 40m",
-                "badge": "👑 Barbz Takeover"
-            },
-            {
-                "id": "sK9v2M1w8Rx",
-                "title": "Kai Cenat & Ice Spice Hilarious NYC Stream",
-                "url": "https://www.youtube.com/watch?v=sK9v2M1w8Rx",
-                "thumbnail": "https://i.ytimg.com/vi/sK9v2M1w8Rx/hqdefault.jpg",
-                "duration": "1h 50m",
-                "badge": "🎤 Ice Spice In The Stu"
-            },
-            {
-                "id": "zT1r8W4k9Vx",
-                "title": "Kai Cenat & Snoop Dogg Live Smoke Session",
-                "url": "https://www.youtube.com/watch?v=zT1r8W4k9Vx",
-                "thumbnail": "https://i.ytimg.com/vi/zT1r8W4k9Vx/hqdefault.jpg",
-                "duration": "2h 10m",
-                "badge": "🔥 West Coast Legend"
-            },
-            {
-                "id": "xQ8v3M9r1Wz",
-                "title": "Kai Cenat Sleep Stream Interrupted by Fire Alarm",
-                "url": "https://www.youtube.com/watch?v=xQ8v3M9r1Wz",
-                "thumbnail": "https://i.ytimg.com/vi/xQ8v3M9r1Wz/hqdefault.jpg",
-                "duration": "1h 05m",
-                "badge": "🚨 3AM Fire Alarm Rage"
+                "id": "dpwDrZJGa4M",
+                "title": "Kai Cenat & Rakai Become SUPERHEROS...",
+                "url": "https://www.youtube.com/watch?v=dpwDrZJGa4M",
+                "thumbnail": "https://i.ytimg.com/vi/dpwDrZJGa4M/hqdefault.jpg",
+                "duration": "41 mins",
+                "badge": "🦸 Kai Superhero Stream"
             }
         ]
     },
@@ -352,84 +296,68 @@ CREATOR_PRESETS = {
         "tags": ["#Shorts", "#Jynxzi", "#R6", "#RainbowSix", "#JynxziClips", "#JynxziRage", "#Viral", "#Trending", "#Gaming", "#FunnyMoments"],
         "featured_videos": [
             {
-                "id": "9md-Dot3D_s",
-                "title": "Try Not To Laugh, Viewer Suggested Videos",
-                "url": "https://www.youtube.com/watch?v=9md-Dot3D_s",
-                "thumbnail": "https://i.ytimg.com/vi/9md-Dot3D_s/hqdefault.jpg",
-                "duration": "34 mins",
-                "badge": "🎮 Rage & Screams"
-            },
-            {
                 "id": "S8EF5_2ND0A",
                 "title": "Your BRUTAL Clips...",
                 "url": "https://www.youtube.com/watch?v=S8EF5_2ND0A",
                 "thumbnail": "https://i.ytimg.com/vi/S8EF5_2ND0A/hqdefault.jpg",
                 "duration": "31 mins",
-                "badge": "💀 Instant Reaction"
+                "badge": "💀 Brutal Clips"
             },
             {
-                "id": "bK7w4X9v1Rp",
-                "title": "Jynxzi 1v1 Against Beaulo for $10,000",
-                "url": "https://www.youtube.com/watch?v=bK7w4X9v1Rp",
-                "thumbnail": "https://i.ytimg.com/vi/bK7w4X9v1Rp/hqdefault.jpg",
-                "duration": "45 mins",
-                "badge": "🏆 The Beaulo Showdown"
+                "id": "FDXpzsK0KI4",
+                "title": "YOU vs The RANK You Deserve (Rainbow Six Siege)",
+                "url": "https://www.youtube.com/watch?v=FDXpzsK0KI4",
+                "thumbnail": "https://i.ytimg.com/vi/FDXpzsK0KI4/hqdefault.jpg",
+                "duration": "21 mins",
+                "badge": "🎮 Deserved Rank"
             },
             {
-                "id": "wT2r8K4m9Vx",
-                "title": "Jynxzi Breaks His 50th Controller on Stream",
-                "url": "https://www.youtube.com/watch?v=wT2r8K4m9Vx",
-                "thumbnail": "https://i.ytimg.com/vi/wT2r8K4m9Vx/hqdefault.jpg",
-                "duration": "22 mins",
-                "badge": "💥 Controller Smash"
+                "id": "YxxEwpsEwSE",
+                "title": "Im Ending Fan Mail...",
+                "url": "https://www.youtube.com/watch?v=YxxEwpsEwSE",
+                "thumbnail": "https://i.ytimg.com/vi/YxxEwpsEwSE/hqdefault.jpg",
+                "duration": "1h 09m",
+                "badge": "📦 Fan Mail Madness"
             },
             {
-                "id": "pQ9v1M7w4Rx",
-                "title": "Jynxzi Reacts To The Worst R6 Clips In History",
-                "url": "https://www.youtube.com/watch?v=pQ9v1M7w4Rx",
-                "thumbnail": "https://i.ytimg.com/vi/pQ9v1M7w4Rx/hqdefault.jpg",
-                "duration": "38 mins",
-                "badge": "🤦 Champion Brain Damage"
+                "id": "BiyIjaqeMh0",
+                "title": "Your ABSURD Clips...",
+                "url": "https://www.youtube.com/watch?v=BiyIjaqeMh0",
+                "thumbnail": "https://i.ytimg.com/vi/BiyIjaqeMh0/hqdefault.jpg",
+                "duration": "34 mins",
+                "badge": "🤯 Absurd Clips Reaction"
             },
             {
-                "id": "xM4w2K8r7Vp",
-                "title": "Jynxzi Blind Dating 10 Girls on Discord",
-                "url": "https://www.youtube.com/watch?v=xM4w2K8r7Vp",
-                "thumbnail": "https://i.ytimg.com/vi/xM4w2K8r7Vp/hqdefault.jpg",
-                "duration": "1h 12m",
-                "badge": "❤️ Unhinged Rizz"
+                "id": "o4nlI5ekJYA",
+                "title": "Bernard Picks My DECK in Clash Royale",
+                "url": "https://www.youtube.com/watch?v=o4nlI5ekJYA",
+                "thumbnail": "https://i.ytimg.com/vi/o4nlI5ekJYA/hqdefault.jpg",
+                "duration": "52 mins",
+                "badge": "👑 Clash Royale Challenge"
             },
             {
-                "id": "rT8k9V1w4Xz",
-                "title": "Jynxzi Discord Got Talent Season 2",
-                "url": "https://www.youtube.com/watch?v=rT8k9V1w4Xz",
-                "thumbnail": "https://i.ytimg.com/vi/rT8k9V1w4Xz/hqdefault.jpg",
-                "duration": "1h 35m",
-                "badge": "🎤 Golden Buzzer Chaos"
+                "id": "oF9Tm4LXm3o",
+                "title": "3v3 MODE IS HERE (Rainbow Six Siege)",
+                "url": "https://www.youtube.com/watch?v=oF9Tm4LXm3o",
+                "thumbnail": "https://i.ytimg.com/vi/oF9Tm4LXm3o/hqdefault.jpg",
+                "duration": "48 mins",
+                "badge": "⚡ 3v3 Siege Mode"
             },
             {
-                "id": "vL2m7W9r0Pq",
-                "title": "Jynxzi 1v5 Champion Ranked Overtime Clutch",
-                "url": "https://www.youtube.com/watch?v=vL2m7W9r0Pq",
-                "thumbnail": "https://i.ytimg.com/vi/vL2m7W9r0Pq/hqdefault.jpg",
-                "duration": "29 mins",
-                "badge": "🔥 Insane Ace Clutch"
+                "id": "MZp4oWnDLII",
+                "title": "Trying My Viewers Clash Royale Decks Returns!",
+                "url": "https://www.youtube.com/watch?v=MZp4oWnDLII",
+                "thumbnail": "https://i.ytimg.com/vi/MZp4oWnDLII/hqdefault.jpg",
+                "duration": "42 mins",
+                "badge": "🏆 Viewer Decks"
             },
             {
-                "id": "mP9w3X7v2Kp",
-                "title": "Jynxzi & Sketch Playing Rainbow Six Siege",
-                "url": "https://www.youtube.com/watch?v=mP9w3X7v2Kp",
-                "thumbnail": "https://i.ytimg.com/vi/mP9w3X7v2Kp/hqdefault.jpg",
-                "duration": "1h 08m",
-                "badge": "⚡ Special Teams Unite"
-            },
-            {
-                "id": "tK1v8M4r9Wz",
-                "title": "Jynxzi Eats The One Chip Challenge on Live Stream",
-                "url": "https://www.youtube.com/watch?v=tK1v8M4r9Wz",
-                "thumbnail": "https://i.ytimg.com/vi/tK1v8M4r9Wz/hqdefault.jpg",
-                "duration": "25 mins",
-                "badge": "🌶️ Carolina Reaper Agony"
+                "id": "ZqFcwTMfIOk",
+                "title": "Your SHOCKING Clips...",
+                "url": "https://www.youtube.com/watch?v=ZqFcwTMfIOk",
+                "thumbnail": "https://i.ytimg.com/vi/ZqFcwTMfIOk/hqdefault.jpg",
+                "duration": "35 mins",
+                "badge": "😱 Shocking Clips"
             }
         ]
     },
@@ -442,8 +370,24 @@ CREATOR_PRESETS = {
         "tags": ["#Shorts", "#CaseOh", "#CaseOhClips", "#CaseOhGames", "#CaseOhRage", "#Viral", "#Trending", "#FYP", "#FunnyMoments", "#TryNotToLaugh"],
         "featured_videos": [
             {
+                "id": "r8MV_JBLEpY",
+                "title": "The Fail Rooms",
+                "url": "https://www.youtube.com/watch?v=r8MV_JBLEpY",
+                "thumbnail": "https://i.ytimg.com/vi/r8MV_JBLEpY/hqdefault.jpg",
+                "duration": "1h 21m",
+                "badge": "🚪 Fail Rooms Horror"
+            },
+            {
+                "id": "0BpKgtVzP0M",
+                "title": "This Familys House Is Terrifying",
+                "url": "https://www.youtube.com/watch?v=0BpKgtVzP0M",
+                "thumbnail": "https://i.ytimg.com/vi/0BpKgtVzP0M/hqdefault.jpg",
+                "duration": "1h 12m",
+                "badge": "👻 Terrifying House"
+            },
+            {
                 "id": "B4V68iXJ-kk",
-                "title": "Liminal Descent…",
+                "title": "Liminal Descent",
                 "url": "https://www.youtube.com/watch?v=B4V68iXJ-kk",
                 "thumbnail": "https://i.ytimg.com/vi/B4V68iXJ-kk/hqdefault.jpg",
                 "duration": "1h 39m",
@@ -451,75 +395,51 @@ CREATOR_PRESETS = {
             },
             {
                 "id": "XYqAx4HhZmU",
-                "title": "I Found Another Village… (Skyblock Part 2)",
+                "title": "I Found Another Village (Skyblock Part 2)",
                 "url": "https://www.youtube.com/watch?v=XYqAx4HhZmU",
                 "thumbnail": "https://i.ytimg.com/vi/XYqAx4HhZmU/hqdefault.jpg",
                 "duration": "1h 17m",
                 "badge": "💬 Hilarious Chat Trolling"
             },
             {
-                "id": "vM8k2W9r4Xp",
-                "title": "CaseOh Plays 60 Seconds (YOU CANNOT BE SERIOUS)",
-                "url": "https://www.youtube.com/watch?v=vM8k2W9r4Xp",
-                "thumbnail": "https://i.ytimg.com/vi/vM8k2W9r4Xp/hqdefault.jpg",
-                "duration": "48 mins",
-                "badge": "🥫 Timmy Left Behind"
+                "id": "lXDm6pFCDb0",
+                "title": "I Played Happy Wheels Again",
+                "url": "https://www.youtube.com/watch?v=lXDm6pFCDb0",
+                "thumbnail": "https://i.ytimg.com/vi/lXDm6pFCDb0/hqdefault.jpg",
+                "duration": "2h 05m",
+                "badge": "🚲 Happy Wheels Rage"
             },
             {
-                "id": "wP4r7K1v9Mz",
-                "title": "CaseOh Plays Supermarket Simulator (STORE IS IN RUINS)",
-                "url": "https://www.youtube.com/watch?v=wP4r7K1v9Mz",
-                "thumbnail": "https://i.ytimg.com/vi/wP4r7K1v9Mz/hqdefault.jpg",
-                "duration": "1h 22m",
-                "badge": "🛒 Cashier Meltdown"
+                "id": "_fH6AZrDoHE",
+                "title": "One Of The Best Horror Games This Year (The Plant Shop)",
+                "url": "https://www.youtube.com/watch?v=_fH6AZrDoHE",
+                "thumbnail": "https://i.ytimg.com/vi/_fH6AZrDoHE/hqdefault.jpg",
+                "duration": "1h 43m",
+                "badge": "🪴 The Plant Shop Horror"
             },
             {
-                "id": "zT9v1M4k8Rx",
-                "title": "CaseOh Plays Fears to Fathom: Ironbark Lookout",
-                "url": "https://www.youtube.com/watch?v=zT9v1M4k8Rx",
-                "thumbnail": "https://i.ytimg.com/vi/zT9v1M4k8Rx/hqdefault.jpg",
-                "duration": "2h 10m",
-                "badge": "🌲 Fire Tower Panic"
+                "id": "R1nvpbZcuN4",
+                "title": "The Family Business",
+                "url": "https://www.youtube.com/watch?v=R1nvpbZcuN4",
+                "thumbnail": "https://i.ytimg.com/vi/R1nvpbZcuN4/hqdefault.jpg",
+                "duration": "46 mins",
+                "badge": "🔪 The Family Business"
             },
             {
-                "id": "qK2w8X7v4Mp",
-                "title": "CaseOh Bans 50 People in Chat For Weight Jokes",
-                "url": "https://www.youtube.com/watch?v=qK2w8X7v4Mp",
-                "thumbnail": "https://i.ytimg.com/vi/qK2w8X7v4Mp/hqdefault.jpg",
-                "duration": "35 mins",
-                "badge": "💀 You're Banned Buddy"
+                "id": "lFZARtBDbRQ",
+                "title": "I Played Minecraft Skyblock",
+                "url": "https://www.youtube.com/watch?v=lFZARtBDbRQ",
+                "thumbnail": "https://i.ytimg.com/vi/lFZARtBDbRQ/hqdefault.jpg",
+                "duration": "1h 57m",
+                "badge": "⛏️ Minecraft Skyblock"
             },
             {
-                "id": "rM4v9W1k7Xz",
-                "title": "CaseOh Plays Granny Chapter 3 (HEART ATTACK)",
-                "url": "https://www.youtube.com/watch?v=rM4v9W1k7Xz",
-                "thumbnail": "https://i.ytimg.com/vi/rM4v9W1k7Xz/hqdefault.jpg",
-                "duration": "55 mins",
-                "badge": "👵 Granny in the Closet"
-            },
-            {
-                "id": "tP8k2M7v4Wp",
-                "title": "CaseOh Plays Contraband Police (INSPECTION FAILED)",
-                "url": "https://www.youtube.com/watch?v=tP8k2M7v4Wp",
-                "thumbnail": "https://i.ytimg.com/vi/tP8k2M7v4Wp/hqdefault.jpg",
-                "duration": "1h 30m",
-                "badge": "👮 Border Chaos"
-            },
-            {
-                "id": "xL1v7K9w2Rp",
-                "title": "CaseOh Plays Night Shift at the Gas Station",
-                "url": "https://www.youtube.com/watch?v=xL1v7K9w2Rp",
-                "thumbnail": "https://i.ytimg.com/vi/xL1v7K9w2Rp/hqdefault.jpg",
-                "duration": "1h 14m",
-                "badge": "⛽ Night Shift Horror"
-            },
-            {
-                "id": "cP4w8M1r9Vx",
-                "title": "CaseOh Plays Five Nights at Freddy's 1",
-                "url": "https://www.youtube.com/watch?v=cP4w8M1r9Vx",
-                "thumbnail": "https://i.ytimg.com/vi/cP4w8M1r9Vx/hqdefault.jpg",
-                "duration": "1h 02m",
-                "badge": "🐻 Foxy Sprints Down The Hall"
+                "id": "DQwj__k_u5A",
+                "title": "I Played The Backrooms Minecraft Mod",
+                "url": "https://www.youtube.com/watch?v=DQwj__k_u5A",
+                "thumbnail": "https://i.ytimg.com/vi/DQwj__k_u5A/hqdefault.jpg",
+                "duration": "58 mins",
+                "badge": "🟡 Backrooms Mod"
             }
         ]
     },

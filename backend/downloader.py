@@ -37,7 +37,6 @@ def _get_base_ytdlp_args() -> list:
         "--fragment-retries", "5",
         "--socket-timeout", "30",
         "--no-check-certificates",
-        "--extractor-args", "youtube:player_client=android,web",
     ]
     node_bin = shutil.which("node") or ("C:\\Program Files\\nodejs\\node.exe" if os.path.exists("C:\\Program Files\\nodejs\\node.exe") else None)
     if node_bin:
@@ -97,7 +96,17 @@ class YouTubeDownloader:
                     "view_count": info.get("view_count", 0),
                 }
             except Exception as e2:
-                raise RuntimeError(f"Failed to fetch video info: {e2}")
+                err_msg = str(e2)
+                if hasattr(e2, "stderr") and e2.stderr:
+                    err_msg += " " + e2.stderr
+                if "Sign in to confirm your age" in err_msg or "inappropriate for some users" in err_msg:
+                    raise RuntimeError("This YouTube video is age-restricted by YouTube. Please pick another stream from the creator presets or try a public video!")
+                elif "429" in err_msg or "Too Many Requests" in err_msg:
+                    raise RuntimeError("YouTube is temporarily rate-limiting requests (HTTP 429). Please wait a few moments and try again.")
+                elif "Video unavailable" in err_msg or "Private video" in err_msg:
+                    raise RuntimeError("This YouTube video is private or unavailable.")
+                else:
+                    raise RuntimeError(f"Could not load YouTube video: {err_msg[:200]}")
 
     def download_fast_audio_for_analysis(self, url: str, video_id: str) -> str:
         """
