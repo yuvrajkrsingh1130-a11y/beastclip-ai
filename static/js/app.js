@@ -272,25 +272,33 @@ function initEventListeners() {
     });
 
     // YouTube Auth Modal triggers
+    const ytAuthModal = document.getElementById("ytAuthModal");
     document.getElementById("ytChannelBadge").addEventListener("click", () => {
-        document.getElementById("ytAuthModal").classList.remove("hidden");
+        ytAuthModal.classList.remove("hidden");
     });
-    document.getElementById("closeYtModalBtn").addEventListener("click", () => {
-        document.getElementById("ytAuthModal").classList.add("hidden");
+    const closeYtModal = () => ytAuthModal.classList.add("hidden");
+    document.getElementById("closeYtModalBtn").addEventListener("click", closeYtModal);
+    const skipYtBtn = document.getElementById("skipYtModalBtn");
+    if (skipYtBtn) skipYtBtn.addEventListener("click", closeYtModal);
+    ytAuthModal.addEventListener("click", (e) => {
+        if (e.target === ytAuthModal) closeYtModal();
     });
     document.getElementById("saveYtCredsBtn").addEventListener("click", setupYouTubeAuth);
 
     // Instagram Auth Modal triggers
+    const instaModal = document.getElementById("instaAuthModal");
     const instaBadge = document.getElementById("instaAccountBadge");
-    if (instaBadge) {
+    if (instaBadge && instaModal) {
         instaBadge.addEventListener("click", () => {
-            document.getElementById("instaAuthModal").classList.remove("hidden");
+            instaModal.classList.remove("hidden");
         });
     }
+    const closeInstaModal = () => instaModal && instaModal.classList.add("hidden");
     const closeInstaBtn = document.getElementById("closeInstaModalBtn");
-    if (closeInstaBtn) {
-        closeInstaBtn.addEventListener("click", () => {
-            document.getElementById("instaAuthModal").classList.add("hidden");
+    if (closeInstaBtn) closeInstaBtn.addEventListener("click", closeInstaModal);
+    if (instaModal) {
+        instaModal.addEventListener("click", (e) => {
+            if (e.target === instaModal) closeInstaModal();
         });
     }
     const saveInstaBtn = document.getElementById("saveInstaBtn");
@@ -299,6 +307,15 @@ function initEventListeners() {
     if (saveInstaCookieBtn) saveInstaCookieBtn.addEventListener("click", setupInstagramSessionCookie);
     const disconnectInstaBtn = document.getElementById("disconnectInstaBtn");
     if (disconnectInstaBtn) disconnectInstaBtn.addEventListener("click", disconnectInstagramAccount);
+
+    // Escape key closes modals
+    window.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+            closeYtModal();
+            closeInstaModal();
+            closePublishModal();
+        }
+    });
 
     // YouTube / Instagram Publish Modal triggers
     document.getElementById("closeYtPublishModalBtn").addEventListener("click", closePublishModal);
