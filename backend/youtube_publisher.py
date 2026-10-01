@@ -130,7 +130,18 @@ class YouTubePublisher:
     def get_channel_info(self) -> dict:
         """Fetches the connected YouTube channel's details."""
         if not self.is_authenticated():
-            return {"authenticated": False}
+            res = {"authenticated": False}
+            if CLIENT_SECRETS_FILE.exists():
+                try:
+                    with open(CLIENT_SECRETS_FILE, "r") as f:
+                        secrets = json.load(f)
+                        cfg = secrets.get("web", secrets.get("installed", {}))
+                        res["has_credentials"] = True
+                        res["client_id"] = cfg.get("client_id", "")
+                        res["client_secret"] = cfg.get("client_secret", "")
+                except Exception:
+                    pass
+            return res
 
         try:
             youtube = build("youtube", "v3", credentials=self.credentials)

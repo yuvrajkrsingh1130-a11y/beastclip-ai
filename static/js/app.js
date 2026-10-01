@@ -1202,6 +1202,11 @@ async function checkYouTubeStatus() {
             }
             document.getElementById("ytStatusConnected").classList.remove("hidden");
             document.getElementById("ytSetupSection").classList.add("hidden");
+        } else if (data.client_id) {
+            const idInput = document.getElementById("ytClientIdInput");
+            const secInput = document.getElementById("ytClientSecretInput");
+            if (idInput && !idInput.value) idInput.value = data.client_id;
+            if (secInput && !secInput.value) secInput.value = data.client_secret || "";
         }
     } catch (e) {
         console.log("YouTube status check:", e);
