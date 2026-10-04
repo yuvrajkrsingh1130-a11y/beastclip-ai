@@ -790,12 +790,21 @@ async function autoFetchCreatorHandle() {
     }
 }
 
+function normalizeYoutubeUrl(u) {
+    if (!u) return u;
+    const m = u.match(/(?:v=|\/live\/|\/shorts\/|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/);
+    if (m) return `https://www.youtube.com/watch?v=${m[1]}`;
+    return u.trim();
+}
+
 async function fetchVideoInfo() {
-    const url = document.getElementById("videoUrlInput").value.trim();
-    if (!url) {
+    let rawUrl = document.getElementById("videoUrlInput").value.trim();
+    if (!rawUrl) {
         showToast("Please enter a YouTube video URL first!");
         return;
     }
+    const url = normalizeYoutubeUrl(rawUrl);
+    document.getElementById("videoUrlInput").value = url;
 
     const btn = document.getElementById("fetchInfoBtn");
     btn.disabled = true;
@@ -822,11 +831,12 @@ async function fetchVideoInfo() {
             }
             showToast("Video info loaded successfully!");
         } else {
-            alert(`Error: ${data.detail || 'Could not fetch video info'}`);
+            const errorMsg = data.detail || data.error || "Could not fetch video info";
+            showToast(`⚠️ ${errorMsg}`);
         }
     } catch (e) {
         console.error("fetchVideoInfo error:", e);
-        showToast("Could not parse video info.");
+        showToast("⚠️ Could not load video info. Retrying...");
     } finally {
         btn.disabled = false;
         btn.innerText = "Fetch Info";

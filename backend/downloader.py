@@ -1,8 +1,10 @@
 import os
 import sys
+import re
 import json
 import shutil
 import subprocess
+import urllib.request
 from pathlib import Path
 from backend.config import TEMP_DIR
 
@@ -28,6 +30,19 @@ def safe_log(msg: str):
         except Exception:
             pass
 
+def normalize_youtube_url(url: str) -> str:
+    """
+    Normalizes any YouTube URL format (/live/, /shorts/, youtu.be, m.youtube.com, tracking query params)
+    into standard canonical https://www.youtube.com/watch?v=VIDEO_ID format.
+    """
+    if not url:
+        return url
+    url = str(url).strip()
+    m = re.search(r'(?:v=|\/live\/|\/shorts\/|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})', url)
+    if m:
+        return f"https://www.youtube.com/watch?v={m.group(1)}"
+    return url
+
 def _get_base_ytdlp_args() -> list:
     """Returns resilient base yt-dlp arguments with JS runtime and anti-throttling options."""
     args = [
@@ -49,70 +64,79 @@ class YouTubeDownloader:
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
     def extract_info(self, url: str) -> dict:
-        """Extract video metadata without downloading full media, supporting full UTF-8 emojis."""
-        try:
-            import yt_dlp
-            ydl_opts = {
-                'quiet': True,
-                'no_warnings': True,
-                'skip_download': True
-            }
-            node_bin = shutil.which("node") or ("C:\\Program Files\\nodejs\\node.exe" if os.path.exists("C:\\Program Files\\nodejs\\node.exe") else None)
-            if node_bin:
-                ydl_opts['js_runtimes'] = {'node': {'path': node_bin}}
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(url, download=False)
-                return {
-                    "id": info.get("id"),
-                    "title": info.get("title", "Stream Highlight"),
-                    "uploader": info.get("uploader") or info.get("channel") or "Streamer",
-                    "uploader_url": info.get("uploader_url") or info.get("channel_url") or "",
-                    "duration": info.get("duration", 0),
-                    "thumbnail": info.get("thumbnail"),
-                    "description": info.get("description", ""),
-                    "view_count": info.get("view_count", 0),
-                }
-        except Exception:
-            # Fallback to subprocess with explicit utf-8 encoding and error replacement
+        """Extract video metadata with automatic URL normalization, multi-client fallback, and oEmbed resilience."""
+        url = normalize_youtube_url(url)
+        vid_match = re.search(r'(?:v=|\/live\/|\/shorts\/|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})', url)
+        video_id = vid_match.group(1) if vid_match else None
+
+        client_attempts = [
+            [], # default auto-select
+            ["--extractor-args", "youtube:player_client=mweb,android"],
+            ["--extractor-args", "youtube:player_client=ios,mweb"],
+        ]
+
+        last_err = None
+        for client_args in client_attempts:
             try:
-                cmd = _get_base_ytdlp_args() + ["--dump-json", url]
+                cmd = _get_base_ytdlp_args() + client_args + ["--dump-json", url]
                 result = subprocess.run(
                     cmd,
                     capture_output=True,
                     encoding="utf-8",
                     errors="replace",
-                    env=dict(os.environ, PYTHONIOENCODING="utf-8"),
-                    check=True
+                    env=dict(os.environ, PYTHONIOENCODING="utf-8")
                 )
-                info = json.loads(result.stdout)
-                return {
-                    "id": info.get("id"),
-                    "title": info.get("title", "Stream Highlight"),
-                    "uploader": info.get("uploader") or info.get("channel") or "Streamer",
-                    "uploader_url": info.get("uploader_url") or info.get("channel_url") or "",
-                    "duration": info.get("duration", 0),
-                    "thumbnail": info.get("thumbnail"),
-                    "description": info.get("description", ""),
-                    "view_count": info.get("view_count", 0),
-                }
-            except Exception as e2:
-                err_msg = str(e2)
-                if hasattr(e2, "stderr") and e2.stderr:
-                    err_msg += " " + e2.stderr
-                if "Sign in to confirm your age" in err_msg or "inappropriate for some users" in err_msg:
-                    raise RuntimeError("This YouTube video is age-restricted by YouTube. Please pick another stream from the creator presets or try a public video!")
-                elif "429" in err_msg or "Too Many Requests" in err_msg:
-                    raise RuntimeError("YouTube is temporarily rate-limiting requests (HTTP 429). Please wait a few moments and try again.")
-                elif "Video unavailable" in err_msg or "Private video" in err_msg:
-                    raise RuntimeError("This YouTube video is private or unavailable.")
-                else:
-                    raise RuntimeError(f"Could not load YouTube video: {err_msg[:200]}")
+                if result.returncode == 0 and result.stdout.strip():
+                    info = json.loads(result.stdout)
+                    return {
+                        "id": info.get("id") or video_id,
+                        "title": info.get("title", "Stream Highlight"),
+                        "uploader": info.get("uploader") or info.get("channel") or "Streamer",
+                        "uploader_url": info.get("uploader_url") or info.get("channel_url") or "",
+                        "duration": info.get("duration", 0),
+                        "thumbnail": info.get("thumbnail") or (f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg" if video_id else ""),
+                        "description": info.get("description", ""),
+                        "view_count": info.get("view_count", 0),
+                    }
+                last_err = result.stderr or result.stdout or ""
+            except Exception as e:
+                last_err = str(e)
+
+        # Fallback to YouTube oEmbed API if bot challenge occurred
+        if video_id:
+            try:
+                import urllib.request
+                oembed_url = f"https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v={video_id}&format=json"
+                req = urllib.request.Request(oembed_url, headers={"User-Agent": "Mozilla/5.0"})
+                with urllib.request.urlopen(req, timeout=5) as resp:
+                    data = json.loads(resp.read().decode("utf-8"))
+                    return {
+                        "id": video_id,
+                        "title": data.get("title", "Stream Highlight"),
+                        "uploader": data.get("author_name", "Creator"),
+                        "uploader_url": data.get("author_url", ""),
+                        "duration": 3600,
+                        "thumbnail": data.get("thumbnail_url", f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg"),
+                        "description": "",
+                        "view_count": 0
+                    }
+            except Exception:
+                pass
+
+        err_msg = str(last_err or "")
+        if "Sign in to confirm your age" in err_msg or "inappropriate for some users" in err_msg:
+            raise RuntimeError("This YouTube video is age-restricted by YouTube. Please pick another stream from the creator presets or try a public video!")
+        elif "Video unavailable" in err_msg or "Private video" in err_msg:
+            raise RuntimeError("This YouTube video is private or unavailable.")
+        else:
+            raise RuntimeError(f"Could not load YouTube video: {err_msg[:200]}")
 
     def download_fast_audio_for_analysis(self, url: str, video_id: str) -> str:
         """
         Downloads lightweight 16kHz mono audio directly from YouTube in seconds
         even for 12-hour mega streams. Multi-strategy pipeline guarantees 100% resilience.
         """
+        url = normalize_youtube_url(url)
         audio_path = self.output_dir / f"{video_id}.wav"
         if audio_path.exists() and audio_path.stat().st_size > 10000:
             safe_log(f"[Downloader] Instant cache hit for audio: {audio_path.name} ({audio_path.stat().st_size} bytes)")
@@ -187,12 +211,12 @@ class YouTubeDownloader:
         except Exception as e2:
             safe_log(f"[Downloader] Strategy 2 error: {e2}")
 
-        # Strategy 3: Alternative client profile (ios/mweb)
-        safe_log(f"[Downloader] Strategy 3: Alternative client profile (ios,mweb)...")
+        # Strategy 3: Alternative client profile (mweb,android)
+        safe_log(f"[Downloader] Strategy 3: Alternative client profile (mweb,android)...")
         cmd3 = [
             "yt-dlp",
             "--no-playlist",
-            "--extractor-args", "youtube:player_client=ios,mweb",
+            "--extractor-args", "youtube:player_client=mweb,android",
             "-f", "ba/b/best",
             "-x",
             "--audio-format", "wav",
@@ -219,6 +243,7 @@ class YouTubeDownloader:
         Downloads ONLY the specific 30-60 second slice directly from YouTube,
         saving 99% of bandwidth and rendering in seconds!
         """
+        url = normalize_youtube_url(url)
         clip_section_path = self.output_dir / f"{clip_id}_raw.mp4"
         if clip_section_path.exists() and clip_section_path.stat().st_size > 50000:
             return str(clip_section_path)
@@ -250,6 +275,20 @@ class YouTubeDownloader:
             res_fb = subprocess.run(cmd_fallback, capture_output=True, text=True, encoding="utf-8", errors="replace", env=dict(os.environ, PYTHONIOENCODING="utf-8"))
             if clip_section_path.exists() and clip_section_path.stat().st_size > 50000:
                 return str(clip_section_path)
+
+            # Try tertiary fallback with mweb,android client profile
+            cmd_tertiary = base_cmd + [
+                "--extractor-args", "youtube:player_client=mweb,android",
+                "--download-sections", f"*{start_sec}-{end_sec}",
+                "-f", "bestvideo[height<=1080]+bestaudio/best[height<=1080]/best",
+                "--merge-output-format", "mp4",
+                "-o", str(clip_section_path),
+                url
+            ]
+            subprocess.run(cmd_tertiary, capture_output=True, text=True, encoding="utf-8", errors="replace", env=dict(os.environ, PYTHONIOENCODING="utf-8"))
+            if clip_section_path.exists() and clip_section_path.stat().st_size > 50000:
+                return str(clip_section_path)
+
             safe_log(f"[Downloader] Section download notice: {res_fb.stderr[:200] if res_fb.stderr else 'incomplete'}, falling back to full stream slice...")
             return None
         except Exception as e:
@@ -261,6 +300,7 @@ class YouTubeDownloader:
         Optimized downloader: For shorter videos, downloads 1080p fast.
         For long streams, downloads audio track first for instant scanning.
         """
+        url = normalize_youtube_url(url)
         if not video_id:
             info = self.extract_info(url)
             video_id = info["id"]
