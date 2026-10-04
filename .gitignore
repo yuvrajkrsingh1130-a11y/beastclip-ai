@@ -42,6 +42,7 @@ temp/
 *.ass
 *.jpg
 *.png
+*.log
 
 # Personal Auth & OAuth Tokens (NEVER COMMIT)
 auth/youtube_token.json
