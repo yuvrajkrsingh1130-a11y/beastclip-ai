@@ -48,10 +48,11 @@ def _get_base_ytdlp_args() -> list:
     args = [
         "yt-dlp",
         "--no-playlist",
-        "--retries", "5",
-        "--fragment-retries", "5",
-        "--socket-timeout", "30",
+        "--retries", "2",
+        "--fragment-retries", "3",
+        "--socket-timeout", "15",
         "--no-check-certificates",
+        "--extractor-args", "youtube:player_client=android,web",
     ]
     node_bin = shutil.which("node") or ("C:\\Program Files\\nodejs\\node.exe" if os.path.exists("C:\\Program Files\\nodejs\\node.exe") else None)
     if node_bin:
@@ -252,47 +253,52 @@ class YouTubeDownloader:
         end_sec = int(start_time + duration + 1)
         base_cmd = _get_base_ytdlp_args()
 
+        # Strategy 1: Fast direct section download with pre-merged 1080p/720p/360p stream
         cmd = base_cmd + [
             "--download-sections", f"*{start_sec}-{end_sec}",
-            "--force-keyframes-at-cuts",
-            "-f", "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/best[height<=1080]/best",
+            "-f", "bestvideo[height<=1080]+bestaudio/best[height<=1080]/18/best",
             "--merge-output-format", "mp4",
             "-o", str(clip_section_path),
             url
         ]
         try:
-            res = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", env=dict(os.environ, PYTHONIOENCODING="utf-8"))
+            res = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                env=dict(os.environ, PYTHONIOENCODING="utf-8"),
+                timeout=45
+            )
             if res.returncode == 0 and clip_section_path.exists() and clip_section_path.stat().st_size > 50000:
+                safe_log(f"[Downloader] Successfully snipped clip section for {clip_id} in seconds!")
                 return str(clip_section_path)
-            # Try secondary format if primary merge failed
-            cmd_fallback = base_cmd + [
+
+            # Strategy 2: Fallback to format 18 (guaranteed pre-merged mobile MP4 on Android client)
+            cmd_fb = base_cmd + [
                 "--download-sections", f"*{start_sec}-{end_sec}",
-                "-f", "bestvideo[height<=1080]+bestaudio/best[height<=1080]/best",
-                "--merge-output-format", "mp4",
+                "-f", "18/best",
                 "-o", str(clip_section_path),
                 url
             ]
-            res_fb = subprocess.run(cmd_fallback, capture_output=True, text=True, encoding="utf-8", errors="replace", env=dict(os.environ, PYTHONIOENCODING="utf-8"))
+            res_fb = subprocess.run(
+                cmd_fb,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                env=dict(os.environ, PYTHONIOENCODING="utf-8"),
+                timeout=35
+            )
             if clip_section_path.exists() and clip_section_path.stat().st_size > 50000:
+                safe_log(f"[Downloader] Snipped clip section via format 18 for {clip_id}!")
                 return str(clip_section_path)
 
-            # Try tertiary fallback with mweb,android client profile
-            cmd_tertiary = base_cmd + [
-                "--extractor-args", "youtube:player_client=mweb,android",
-                "--download-sections", f"*{start_sec}-{end_sec}",
-                "-f", "bestvideo[height<=1080]+bestaudio/best[height<=1080]/best",
-                "--merge-output-format", "mp4",
-                "-o", str(clip_section_path),
-                url
-            ]
-            subprocess.run(cmd_tertiary, capture_output=True, text=True, encoding="utf-8", errors="replace", env=dict(os.environ, PYTHONIOENCODING="utf-8"))
-            if clip_section_path.exists() and clip_section_path.stat().st_size > 50000:
-                return str(clip_section_path)
-
-            safe_log(f"[Downloader] Section download notice: {res_fb.stderr[:200] if res_fb.stderr else 'incomplete'}, falling back to full stream slice...")
+            safe_log(f"[Downloader] Section download notice: {res_fb.stderr[:200] if res_fb.stderr else 'incomplete'}")
             return None
         except Exception as e:
-            safe_log(f"[Downloader] Section download exception: {e}, falling back to full stream slice...")
+            safe_log(f"[Downloader] Section download exception: {e}")
             return None
 
     def download_video_and_audio(self, url: str, video_id: str = None) -> dict:

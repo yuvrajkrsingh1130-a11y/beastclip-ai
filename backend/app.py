@@ -201,14 +201,17 @@ def process_single_clip_task(
     sub_generator,
     renderer,
     meta_gen,
-    thumb_maker
+    thumb_maker,
+    pre_snipped_source=None
 ):
     idx, clip = clip_tuple
     clip_idx = idx + 1
     clip_id = f"{job_id}_clip_{clip_idx}"
 
-    # Determine source clip path (either existing local video or fast parallel snipped slice)
-    if video_path and os.path.exists(video_path):
+    # Determine source clip path (use pre-snipped stream slice or local video)
+    if pre_snipped_source and pre_snipped_source[0] and os.path.exists(pre_snipped_source[0]):
+        source_for_render, render_start = pre_snipped_source
+    elif video_path and os.path.exists(video_path):
         source_for_render = video_path
         render_start = clip["start"]
     else:
@@ -216,47 +219,48 @@ def process_single_clip_task(
         if snipped_path and os.path.exists(snipped_path):
             source_for_render = snipped_path
             render_start = 0.0
-        else:
-            full_res = downloader.download_video_and_audio(req.url, info["id"])
-            source_for_render = full_res.get("video_path")
+        elif video_path and os.path.exists(video_path):
+            source_for_render = video_path
             render_start = clip["start"]
+        else:
+            raise RuntimeError(f"Could not load source video for clip #{clip_idx}")
 
-    # Frame-Perfect Subtitle Synchronization
-    # Slices the exact audio of the rendered video slice to ensure 100% frame-perfect sync
-    clip_words = []
-    try:
-        clip_audio_tmp = TEMP_DIR / f"{clip_id}_clean.wav"
-        ffmpeg_slice_cmd = ["ffmpeg", "-y"]
-        if render_start > 0.0:
-            ffmpeg_slice_cmd.extend(["-ss", str(render_start), "-t", str(clip["duration"])])
-        elif clip.get("duration"):
-            ffmpeg_slice_cmd.extend(["-t", str(clip["duration"])])
+    # High-precision word timestamps pre-extracted from Step 2 transcript (already synced)
+    clip_words = clip.get("words", [])
+    if not clip_words:
+        # Fallback to slice audio transcription only if transcript had no words
+        try:
+            clip_audio_tmp = TEMP_DIR / f"{clip_id}_clean.wav"
+            ffmpeg_slice_cmd = ["ffmpeg", "-y"]
+            if render_start > 0.0:
+                ffmpeg_slice_cmd.extend(["-ss", str(render_start), "-t", str(clip["duration"]), "-accurate_seek"])
+            else:
+                ffmpeg_slice_cmd.extend(["-t", str(clip["duration"])])
 
-        ffmpeg_slice_cmd.extend([
-            "-accurate_seek",
-            "-i", str(source_for_render),
-            "-avoid_negative_ts", "make_zero",
-            "-vn", "-acodec", "pcm_s16le", "-ar", "16000", "-ac", "1",
-            str(clip_audio_tmp)
-        ])
-        subprocess.run(ffmpeg_slice_cmd, check=True, capture_output=True)
+            ffmpeg_slice_cmd.extend([
+                "-i", str(source_for_render),
+                "-avoid_negative_ts", "make_zero",
+                "-vn", "-acodec", "pcm_s16le", "-ar", "16000", "-ac", "1",
+                str(clip_audio_tmp)
+            ])
+            subprocess.run(ffmpeg_slice_cmd, check=True, capture_output=True)
 
-        if clip_audio_tmp.exists() and clip_audio_tmp.stat().st_size > 10000:
-            exact_trans = transcriber.transcribe(
-                str(clip_audio_tmp),
-                video_title=info.get("title", ""),
-                uploader=info.get("uploader", ""),
-                context_prompt=clip.get("text", ""),
-                is_clip_slice=True
-            )
-            exact_words = []
-            for s in exact_trans.get("segments", []):
-                for w in s.get("words", []):
-                    exact_words.append(w)
-            if exact_words and len(exact_words) >= 2:
-                clip_words = exact_words
-    except Exception as sync_err:
-        print(f"[Sync] Slice audio transcription notice: {sync_err}")
+            if clip_audio_tmp.exists() and clip_audio_tmp.stat().st_size > 10000:
+                exact_trans = transcriber.transcribe(
+                    str(clip_audio_tmp),
+                    video_title=info.get("title", ""),
+                    uploader=info.get("uploader", ""),
+                    context_prompt=clip.get("text", ""),
+                    is_clip_slice=True
+                )
+                exact_words = []
+                for s in exact_trans.get("segments", []):
+                    for w in s.get("words", []):
+                        exact_words.append(w)
+                if exact_words and len(exact_words) >= 2:
+                    clip_words = exact_words
+        except Exception as sync_err:
+            print(f"[Sync] Slice audio transcription notice: {sync_err}")
 
     # Fallback to master transcript words if slice re-transcription found no words
     if not clip_words:
@@ -402,8 +406,26 @@ def run_processing_pipeline(job_id: str, req: ProcessRequest):
             num_clips=req.num_clips
         )
 
-        # 4. Multi-Threaded Parallel Rendering (3x - 5x Speedup)
-        JOBS[job_id]["progress"] = 70
+        # 4. Stream Snipping: Pre-extract highlight sections cleanly to prevent concurrent 429 blocking
+        JOBS[job_id]["progress"] = 65
+        clip_source_map = {}
+        for idx, clip in enumerate(selected_clips):
+            c_idx = idx + 1
+            c_id = f"{job_id}_clip_{c_idx}"
+            if video_path and os.path.exists(video_path):
+                clip_source_map[idx] = (video_path, clip["start"])
+            else:
+                JOBS[job_id]["message"] = f"Extracting stream highlight #{c_idx} of {len(selected_clips)}..."
+                snipped = downloader.download_clip_section(req.url, info["id"], clip["start"], clip["duration"], c_id)
+                if snipped and os.path.exists(snipped):
+                    clip_source_map[idx] = (snipped, 0.0)
+                elif video_path and os.path.exists(video_path):
+                    clip_source_map[idx] = (video_path, clip["start"])
+                else:
+                    clip_source_map[idx] = (None, 0.0)
+
+        # 5. Multi-Threaded Parallel Rendering (3x - 5x Speedup on local files)
+        JOBS[job_id]["progress"] = 75
         JOBS[job_id]["message"] = f"Parallel Rendering {len(selected_clips)} 9:16 Shorts with dynamic captions..."
 
         face_tracker = FaceTracker()
@@ -434,7 +456,8 @@ def run_processing_pipeline(job_id: str, req: ProcessRequest):
                     sub_generator,
                     renderer,
                     meta_gen,
-                    thumb_maker
+                    thumb_maker,
+                    clip_source_map.get(idx)
                 )
                 for idx, clip in enumerate(selected_clips)
             ]
