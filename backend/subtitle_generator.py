@@ -54,10 +54,11 @@ def clean_word_text(raw: str) -> str:
     return re.sub(r'[\r\n\t]+', ' ', str(raw)).strip()
 
 class SubtitleGenerator:
-    def __init__(self, preset_name: str = "hormozi", caption_size: str = "slightly_big"):
+    def __init__(self, preset_name: str = "hormozi", caption_size: str = "slightly_big", audio_sync_offset: float = -0.35):
         self.preset_name = preset_name
         self.preset = SUBTITLE_PRESETS.get(preset_name, SUBTITLE_PRESETS["hormozi"])
         self.caption_size = caption_size or "slightly_big"
+        self.audio_sync_offset = audio_sync_offset
 
     def create_ass_subtitles(
         self,
@@ -65,11 +66,13 @@ class SubtitleGenerator:
         output_ass_path: str,
         creator_credit: str = "@Creator",
         clip_duration: float = 60.0,
-        max_words_per_line: int = 2
+        max_words_per_line: int = 2,
+        audio_sync_offset: float = None
     ):
         """
         Generates frame-perfect animated kinetic captions with iconic bounce/hover effects
         (IShowSpeed, Kai Cenat, MrBeast style) and zero overlap/lag collisions.
+        Applies negative audio sync offset (-0.35s) and word-level clamping so words never linger.
         """
         fontname = self.preset.get("fontname", "Arial Black")
         base_size = self.preset.get("fontsize", 25)
@@ -120,8 +123,10 @@ Dialogue: 1,0:00:00.00,{format_ass_time(clip_duration)},CreditBadge,,0,0,0,,ORIG
             if not raw or raw in ["[", "]", "(", ")", "...", "---"]:
                 continue
 
-            s = max(0.0, float(w.get("start", 0.0)))
-            e = max(s + 0.08, float(w.get("end", s + 0.25)))
+            s = float(w.get("start", 0.0))
+            e = float(w.get("end", s + 0.15))
+            if e <= s:
+                e = s + 0.15
             raw_words.append({
                 "word": raw,
                 "start": s,
@@ -145,60 +150,97 @@ Dialogue: 1,0:00:00.00,{format_ass_time(clip_duration)},CreditBadge,,0,0,0,,ORIG
                 f.write(ass_content)
             return
 
-        # Step 2: Calibrated Synchronization Offset (+0.16s delay)
-        # Fixes the lead offset where Whisper token timestamps predict speech ~160ms
-        # before the acoustic sound is heard, ensuring captions pop on the exact audible voice.
-        SYNC_DELAY = 0.16
+        # Step 2: Calibrated Negative Time Offset (-0.35s)
+        # Whisper transcript timestamps lag behind speech by ~300ms–500ms.
+        # Negative offset ensures subtitles highlight the exact microsecond the word is uttered.
+        offset = float(audio_sync_offset if audio_sync_offset is not None else self.audio_sync_offset)
+        adjusted_words = []
+        for w in filtered_words:
+            w_start = max(0.0, round(w["start"] + offset, 3))
+            w_end = max(w_start + 0.05, round(w["end"] + offset, 3))
+            adjusted_words.append({
+                "word": w["word"],
+                "start": w_start,
+                "end": w_end
+            })
 
-        # Step 3: Group words into punchy 1-2 word mobile kinetic pulses
-        pulses = []
-        i = 0
-        n_words = len(filtered_words)
-
-        while i < n_words:
-            w1 = filtered_words[i]
-            pair = [w1]
+        # Step 3: Word-Level Sync Clamping
+        # Clamp end-times to min(word.end, next_word.start) so words never linger or hang on screen
+        n_words = len(adjusted_words)
+        clamped_words = []
+        for i in range(n_words):
+            w = adjusted_words[i]
+            w_start = w["start"]
+            w_end = w["end"]
 
             if i + 1 < n_words:
-                w2 = filtered_words[i + 1]
+                next_start = adjusted_words[i + 1]["start"]
+                clamped_end = min(w_end, next_start)
+                if clamped_end <= w_start:
+                    clamped_end = max(w_start + 0.04, next_start - 0.01)
+            else:
+                clamped_end = min(clip_duration, w_end)
+
+            clamped_words.append({
+                "word": w["word"],
+                "start": w_start,
+                "end": clamped_end
+            })
+
+        # Step 4: Group words into punchy 1-2 word mobile kinetic pulses
+        pulses = []
+        i = 0
+        while i < n_words:
+            w1 = clamped_words[i]
+            pair = [w1]
+
+            if max_words_per_line >= 2 and i + 1 < n_words:
+                w2 = clamped_words[i + 1]
                 gap = w2["start"] - w1["end"]
-                # Pair tightly connected words if short length
-                if gap < 0.16 and (len(w1["word"]) + len(w2["word"]) <= 11) and not w1["word"].endswith((".", "!", "?")):
+                # Only pair tightly connected words if short length and no speech gap
+                if gap <= 0.10 and (len(w1["word"]) + len(w2["word"]) <= 11) and not w1["word"].endswith((".", "!", "?")):
                     pair.append(w2)
                     i += 1
 
-            raw_start = round(pair[0]["start"] + SYNC_DELAY, 2)
-            raw_end = round(pair[-1]["end"] + SYNC_DELAY, 2)
+            p_start = pair[0]["start"]
+            p_end = pair[-1]["end"]
+
+            # Clamp pulse end so it never extends past the next word's start
+            if i + 1 < n_words:
+                next_word_start = clamped_words[i + 1]["start"]
+                p_end = min(p_end, next_word_start)
+            else:
+                p_end = min(clip_duration, p_end)
+
             pulses.append({
                 "items": pair,
-                "start": raw_start,
-                "end": max(raw_start + 0.22, raw_end + 0.08)
+                "start": p_start,
+                "end": p_end
             })
             i += 1
 
-        # Step 4: Strict Non-Overlapping Dialogue Timeline Generator
+        # Step 5: Strict Non-Overlapping Dialogue Timeline Generator
         # Eliminates subtitle stacking, screen lagging, and dual-caption collisions
         last_dialogue_end = 0.0
         for p_idx, pulse in enumerate(pulses):
             # Ensure this pulse starts strictly after previous pulse has finished
             if pulse["start"] < last_dialogue_end:
-                pulse["start"] = round(last_dialogue_end + 0.02, 2)
+                pulse["start"] = round(last_dialogue_end + 0.01, 3)
 
             # Cap end time so it never overlaps or touches next pulse start
             if p_idx + 1 < len(pulses):
                 next_p = pulses[p_idx + 1]
-                next_raw_start = round(next_p["items"][0]["start"] + SYNC_DELAY, 2)
-                pulse["end"] = min(pulse["end"], max(pulse["start"] + 0.18, next_raw_start - 0.02))
+                pulse["end"] = min(pulse["end"], max(pulse["start"] + 0.05, next_p["start"] - 0.01))
             else:
                 pulse["end"] = min(clip_duration, pulse["end"])
 
-            # Guarantee minimum readable duration
+            # Guarantee minimum readable duration if speech was instantaneous
             if pulse["end"] <= pulse["start"]:
-                pulse["end"] = round(pulse["start"] + 0.22, 2)
+                pulse["end"] = round(pulse["start"] + 0.08, 3)
 
             last_dialogue_end = pulse["end"]
 
-            # Step 5: Speed / MrBeast Kinetic Animation Tag Construction
+            # Step 6: Speed / MrBeast Kinetic Animation Tag Construction
             # Snappy pop-in bounce scale tag
             if anim_type == "bounce":
                 # Iconic Speed & MrBeast bounce: grows from 84% to 124% in 65ms, snaps back to 100%
@@ -217,7 +259,7 @@ Dialogue: 1,0:00:00.00,{format_ass_time(clip_duration)},CreditBadge,,0,0,0,,ORIG
             else:
                 anim_tag = r"{\fscx84\fscy84\t(0,65,\fscx124\fscy124)\t(65,135,\fscx100\fscy100)}"
 
-            # Step 6: Active Word Highlighting (Karaoke style)
+            # Step 7: Active Word Highlighting (Karaoke style)
             word_elements = []
             for item in pulse["items"]:
                 raw_w = item["word"]

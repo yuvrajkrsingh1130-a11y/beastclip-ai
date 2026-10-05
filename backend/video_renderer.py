@@ -37,10 +37,10 @@ class VideoRenderer:
                 if drive:
                     escaped_ass = f"{drive[0]}\\:{rest}"
 
-        # Clean, natural studio audio filter with strictly zero-based PTS
+        # Clean, natural studio audio filter with strictly zero-based PTS and resample sync
         audio_filter = (
             "asetpts=PTS-STARTPTS,"
-            "aresample=async=1000,"
+            "aresample=async=1000:first_pts=0,"
             "volume=1.15,"
             "aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo"
         )
@@ -89,8 +89,10 @@ class VideoRenderer:
             "-ss", str(start_time),
             "-t", str(duration),
             "-accurate_seek",
-            "-i", str(source_video_path),
+            "-copyts",
             "-avoid_negative_ts", "make_zero",
+            "-i", str(source_video_path),
+            "-fps_mode", "cfr",
             "-filter_complex", vf,
             "-map", "[v]",
             "-map", "0:a?",
@@ -119,12 +121,16 @@ class VideoRenderer:
             )
             fallback_cmd = [
                 "ffmpeg", "-y",
-                "-ss", str(start_time), "-t", str(duration),
+                "-ss", str(start_time),
+                "-t", str(duration),
                 "-accurate_seek",
-                "-i", str(source_video_path),
+                "-copyts",
                 "-avoid_negative_ts", "make_zero",
+                "-i", str(source_video_path),
+                "-fps_mode", "cfr",
                 "-filter_complex", fallback_vf,
-                "-map", "[v]", "-map", "0:a?",
+                "-map", "[v]",
+                "-map", "0:a?",
                 "-af", audio_filter,
                 "-c:v", "libx264",
                 "-pix_fmt", "yuv420p",

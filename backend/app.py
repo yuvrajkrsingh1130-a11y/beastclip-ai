@@ -70,6 +70,7 @@ class ProcessRequest(BaseModel):
     num_clips: int = 5               # 3, 5, 10, 15
     subtitle_style: str = "hormozi"  # hormozi, beast, neon, fire_red
     caption_size: str = "slightly_big" # medium, slightly_big, large
+    audio_sync_offset: float = -0.35  # Whisper latency compensation (-0.35s default)
     layout: str = "split_screen"     # split_screen (default), gaming_pip, blurred_backdrop
     creator_credit: Optional[str] = None
     enable_copyright_shield: bool = True
@@ -83,6 +84,7 @@ class MultiVideoCompilationRequest(BaseModel):
     countdown_style: str = "gold"    # gold, cyber, fire, beast
     subtitle_style: str = "hormozi"
     caption_size: str = "slightly_big"
+    audio_sync_offset: float = -0.35
     layout: str = "split_screen"
     creator_credit: Optional[str] = None
 
@@ -405,7 +407,11 @@ def run_processing_pipeline(job_id: str, req: ProcessRequest):
         JOBS[job_id]["message"] = f"Parallel Rendering {len(selected_clips)} 9:16 Shorts with dynamic captions..."
 
         face_tracker = FaceTracker()
-        sub_generator = SubtitleGenerator(req.subtitle_style, caption_size=getattr(req, "caption_size", "slightly_big"))
+        sub_generator = SubtitleGenerator(
+            req.subtitle_style,
+            caption_size=getattr(req, "caption_size", "slightly_big"),
+            audio_sync_offset=getattr(req, "audio_sync_offset", -0.35)
+        )
         renderer = VideoRenderer()
         meta_gen = MetadataGenerator()
         thumb_maker = ThumbnailMaker()
@@ -476,7 +482,11 @@ def run_multi_video_compilation_pipeline(job_id: str, req: MultiVideoCompilation
         energy_detector = AudioEnergyDetector()
         clip_extractor = ClipExtractor(energy_detector)
         face_tracker = FaceTracker()
-        sub_generator = SubtitleGenerator(req.subtitle_style, caption_size=getattr(req, "caption_size", "slightly_big"))
+        sub_generator = SubtitleGenerator(
+            req.subtitle_style,
+            caption_size=getattr(req, "caption_size", "slightly_big"),
+            audio_sync_offset=getattr(req, "audio_sync_offset", -0.35)
+        )
         renderer = VideoRenderer()
         meta_gen = MetadataGenerator()
         thumb_maker = ThumbnailMaker()

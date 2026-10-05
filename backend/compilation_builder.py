@@ -212,19 +212,22 @@ class CompilationBuilder:
             )
 
             # Properly escape path for Windows FFmpeg subtitles filter
-            escaped_ass = Path(ladder_ass).resolve().as_posix()
-            if os.name == "nt":
-                # Escape drive letter colon (e.g. C:/ -> C\\:/)
-                drive, rest = os.path.splitdrive(escaped_ass)
-                if drive:
-                    escaped_ass = f"{drive[0]}\\:{rest}"
+            try:
+                escaped_ass = Path(ladder_ass).resolve().relative_to(BASE_DIR).as_posix()
+            except Exception:
+                escaped_ass = Path(ladder_ass).resolve().as_posix()
+                if os.name == "nt":
+                    drive, rest = os.path.splitdrive(escaped_ass)
+                    if drive:
+                        escaped_ass = f"{drive[0]}\\:{rest}"
 
             vf_seg = (
-                f"scale=1080:1920:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:1920,"
-                f"subtitles='{escaped_ass}'"
+                f"[0:v]setpts=PTS-STARTPTS,scale=1080:1920:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:1920,"
+                f"subtitles='{escaped_ass}'[v]"
             )
             af_seg = (
-                "aresample=async=1000,"
+                "asetpts=PTS-STARTPTS,"
+                "aresample=async=1000:first_pts=0,"
                 "volume=1.35,"
                 "compand=attacks=0.02:decays=0.1:points=-80/-80|-45/-22|-20/-8|0/-1:soft-knee=6,"
                 "aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo"
@@ -234,8 +237,12 @@ class CompilationBuilder:
                 "ffmpeg", "-y",
                 "-ss", str(seg_start),
                 "-t", str(seg_dur),
+                "-accurate_seek",
+                "-copyts",
+                "-avoid_negative_ts", "make_zero",
                 "-i", str(seg_video),
-                "-filter_complex", f"[0:v]{vf_seg}[v]",
+                "-fps_mode", "cfr",
+                "-filter_complex", vf_seg,
                 "-map", "[v]",
                 "-map", "0:a?",
                 "-af", af_seg,
@@ -267,6 +274,8 @@ class CompilationBuilder:
             "-f", "concat",
             "-safe", "0",
             "-i", str(concat_list_file),
+            "-fps_mode", "cfr",
+            "-avoid_negative_ts", "make_zero",
             "-c:v", "libx264",
             "-pix_fmt", "yuv420p",
             "-preset", "veryfast",
