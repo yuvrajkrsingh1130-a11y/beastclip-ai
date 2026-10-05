@@ -118,9 +118,9 @@ def get_presets():
         "subtitle_styles": SUBTITLE_PRESETS,
         "creators": CREATOR_PRESETS,
         "layouts": [
-            {"id": "split_screen", "name": "Split Screen (Gaming + Cam)", "desc": "Top half facecam, bottom half gameplay (Twitch/Kick style)"},
-            {"id": "gaming_pip", "name": "Gaming PiP Cam (Corner Bubble)", "desc": "Fullscreen gameplay with dynamic rounded facecam in corner"},
-            {"id": "blurred_backdrop", "name": "Blurred Ambient Backdrop", "desc": "Landscape video with aesthetic blurred vertical background"}
+            {"id": "split_screen", "name": "Studio Split Screen (Cam Top + Neon Bar + Game)", "desc": "1080x956 Cam top + 8px studio neon divider + centered game action (Twitch/Kick standard)"},
+            {"id": "gaming_pip", "name": "Cinematic Gaming PiP (Floating Cam + 16:9 Game)", "desc": "Floating reaction cam top + full uncropped 16:9 gameplay with zero HUD/minimap cutoff"},
+            {"id": "blurred_backdrop", "name": "Cinematic Blur Backdrop (Centered Action)", "desc": "Crisp 16:9 center action on an ambient 60fps blurred vertical background"}
         ]
     }
 

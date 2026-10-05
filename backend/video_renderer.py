@@ -54,32 +54,40 @@ class VideoRenderer:
         crop_cam_x = f"max(0, min(iw - {crop_cam_w}, (iw * {cam_cx}) - ({crop_cam_w} / 2)))"
         crop_cam_y = f"max(0, min(ih - {crop_cam_h}, (ih * {cam_cy}) - ({crop_cam_h} / 2)))"
 
-        crop_screen_w = "iw*0.75"
-        crop_screen_h = "ih*0.78"
-        crop_screen_x = "iw*0.22" if cam_cx < 0.5 else "iw*0.04"
-        crop_screen_y = "ih*0.04"
+        # Center-weighted gameplay crop: captures the active center action without extreme distortion
+        if cam_cx < 0.35:
+            crop_screen_x = "(iw * 0.16)"
+        elif cam_cx > 0.65:
+            crop_screen_x = "(iw * 0.02)"
+        else:
+            crop_screen_x = "(iw - min(iw, ih*1.125)) / 2"
 
-        # Build Video Filter Graph (Split Screen default, or PiP, or Blurred)
+        # Build Video Filter Graph with studio-grade composition
         if layout == "gaming_pip":
+            # Gaming PiP: Ambient dark-blur canvas + prominent floating 720x560 cam window + full 16:9 gameplay
             vf = (
-                f"[0:v]setpts=PTS-STARTPTS,scale=1080:1920:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:1920[bg];"
-                f"[0:v]setpts=PTS-STARTPTS,crop=w={crop_cam_w}:h={crop_cam_h}:x='{crop_cam_x}':y='{crop_cam_y}',scale=380:440:force_original_aspect_ratio=increase:flags=lanczos,crop=380:440[cam];"
-                f"[bg][cam]overlay=W-w-36:48[merged];"
+                f"[0:v]setpts=PTS-STARTPTS,scale=1080:1920:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:1920,boxblur=25:5,colorchannelmixer=aa=1:rr=0.35:gg=0.35:bb=0.35[bg];"
+                f"[0:v]setpts=PTS-STARTPTS,crop=w={crop_cam_w}:h={crop_cam_h}:x='{crop_cam_x}':y='{crop_cam_y}',scale=720:560:force_original_aspect_ratio=increase:flags=lanczos,crop=720:560,drawbox=x=0:y=0:w=iw:h=ih:color=0x6366f1@0.9:t=4[cam];"
+                f"[0:v]setpts=PTS-STARTPTS,scale=1080:608:force_original_aspect_ratio=decrease:flags=lanczos,drawbox=x=0:y=0:w=iw:h=ih:color=0xffffff@0.25:t=2[game];"
+                f"[bg][cam]overlay=x=180:y=140[bg_cam];"
+                f"[bg_cam][game]overlay=x=0:y=780[merged];"
                 f"[merged]subtitles='{escaped_ass}'[v]"
             )
         elif layout == "blurred_backdrop":
+            # Blurred Backdrop: Fast 60fps boxblur ambient background + full-width centered foreground
             vf = (
-                f"[0:v]setpts=PTS-STARTPTS,scale=1080:1920:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:1920,gblur=sigma=28[bg];"
-                f"[0:v]setpts=PTS-STARTPTS,scale=1080:608:force_original_aspect_ratio=decrease:flags=lanczos[fg];"
+                f"[0:v]setpts=PTS-STARTPTS,scale=1080:1920:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:1920,boxblur=25:5,colorchannelmixer=aa=1:rr=0.4:gg=0.4:bb=0.4[bg];"
+                f"[0:v]setpts=PTS-STARTPTS,scale=1080:608:force_original_aspect_ratio=decrease:flags=lanczos,drawbox=x=0:y=0:w=iw:h=ih:color=0xffffff@0.2:t=2[fg];"
                 f"[bg][fg]overlay=(W-w)/2:(H-h)/2[merged];"
                 f"[merged]subtitles='{escaped_ass}'[v]"
             )
         else:
-            # Default: Clean Split Screen (Cam Top + Gameplay/Screen Bottom)
+            # Default: Clean Viral Split Screen (Cam Top 956px + 8px Neon Broadcast Divider + Focused Game 956px)
             vf = (
-                f"[0:v]setpts=PTS-STARTPTS,crop=w={crop_cam_w}:h={crop_cam_h}:x='{crop_cam_x}':y='{crop_cam_y}',scale=1080:960:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:960[top];"
-                f"[0:v]setpts=PTS-STARTPTS,crop=w={crop_screen_w}:h={crop_screen_h}:x='{crop_screen_x}':y='{crop_screen_y}',scale=1080:960:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:960[bot];"
-                f"[top][bot]vstack=inputs=2[stacked];"
+                f"[0:v]setpts=PTS-STARTPTS,crop=w={crop_cam_w}:h={crop_cam_h}:x='{crop_cam_x}':y='{crop_cam_y}',scale=1080:956:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:956[top];"
+                f"[0:v]setpts=PTS-STARTPTS,crop=w=min(iw\\,ih*1.2):h=min(ih\\,iw/1.2):x='{crop_screen_x}':y=0,scale=1080:956:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:956[bot];"
+                f"color=c=0x6366f1:s=1080x8:r=30[divider];"
+                f"[top][divider][bot]vstack=inputs=3:shortest=1[stacked];"
                 f"[stacked]subtitles='{escaped_ass}'[v]"
             )
 
