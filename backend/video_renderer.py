@@ -27,12 +27,15 @@ class VideoRenderer:
         if not cam_box:
             cam_box = {"x": 0.22, "y": 0.72, "w": 0.42, "h": 0.55}
 
-        # Properly escape ASS path for Windows FFmpeg subtitles filter
-        escaped_ass = Path(ass_subtitle_path).resolve().as_posix()
-        if os.name == "nt":
-            drive, rest = os.path.splitdrive(escaped_ass)
-            if drive:
-                escaped_ass = f"{drive[0]}\\:{rest}"
+        # Robust ASS path for FFmpeg filter (relative path avoids Windows drive colon conflicts)
+        try:
+            escaped_ass = Path(ass_subtitle_path).resolve().relative_to(BASE_DIR).as_posix()
+        except Exception:
+            escaped_ass = Path(ass_subtitle_path).resolve().as_posix()
+            if os.name == "nt":
+                drive, rest = os.path.splitdrive(escaped_ass)
+                if drive:
+                    escaped_ass = f"{drive[0]}\\:{rest}"
 
         # Clean, natural studio audio filter with strictly zero-based PTS
         audio_filter = (
