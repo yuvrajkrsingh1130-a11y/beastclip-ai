@@ -372,11 +372,12 @@ def run_processing_pipeline(job_id: str, req: ProcessRequest):
 
         # For long streams (> 12 mins), transcribe top peak reaction regions for 10x-20x speedup!
         if duration > 720:
+            target_num_regions = min(10, max(5, int(req.num_clips) + 2))
             peak_regions = energy_detector.find_top_peak_regions(
                 energy_timeline,
                 total_duration=duration,
                 region_duration=max(45.0, float(req.target_duration) + 5.0),
-                max_regions=15,
+                max_regions=target_num_regions,
                 min_gap_seconds=max(60.0, duration / 25.0)
             )
             JOBS[job_id]["message"] = f"Transcribing Top {len(peak_regions)} Peak Viral Moments with Turbo AI Model..."
@@ -439,7 +440,7 @@ def run_processing_pipeline(job_id: str, req: ProcessRequest):
         thumb_maker = ThumbnailMaker()
 
         rendered_clips = []
-        max_workers = min(3, max(1, len(selected_clips)))
+        max_workers = min(2, max(1, len(selected_clips)))
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = [

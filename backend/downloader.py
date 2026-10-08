@@ -145,10 +145,10 @@ class YouTubeDownloader:
 
         base_cmd = _get_base_ytdlp_args()
 
-        # Strategy 1: Direct yt-dlp 16kHz mono WAV extraction
+        # Strategy 1: Direct yt-dlp 16kHz mono WAV extraction using lightweight audio stream
         safe_log(f"[Downloader] Strategy 1: Direct audio stream extraction for {video_id}...")
         cmd1 = base_cmd + [
-            "-f", "ba/ba*/bestaudio/b/best",
+            "-f", "ba[abr<=64]/249/250/139/ba[abr<=96]/ba/b/best",
             "-x",
             "--audio-format", "wav",
             "--postprocessor-args", "ffmpeg:-ar 16000 -ac 1",
@@ -172,11 +172,11 @@ class YouTubeDownloader:
         except Exception as e1:
             safe_log(f"[Downloader] Strategy 1 error: {e1}")
 
-        # Strategy 2: Download raw audio track directly, then convert with local ffmpeg
+        # Strategy 2: Download raw lightweight audio track directly, then convert with local ffmpeg
         safe_log(f"[Downloader] Strategy 2: Raw audio fetch + local ffmpeg conversion...")
         raw_pattern = self.output_dir / f"{video_id}_rawaudio.%(ext)s"
         cmd2 = base_cmd + [
-            "-f", "ba/b/best",
+            "-f", "ba[abr<=64]/249/250/139/ba[abr<=96]/ba/b/best",
             "-o", str(raw_pattern),
             url
         ]

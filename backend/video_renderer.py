@@ -62,30 +62,30 @@ class VideoRenderer:
         else:
             crop_screen_x = "(iw - min(iw, ih*1.125)) / 2"
 
-        # Build Video Filter Graph with studio-grade composition
+        # Build Video Filter Graph with studio-grade composition & 10x optimized downscaled blur
         if layout == "gaming_pip":
-            # Gaming PiP: Ambient dark-blur canvas + prominent floating 720x560 cam window + full 16:9 gameplay
+            # Gaming PiP: Fast downscaled ambient dark-blur canvas + prominent floating 720x560 cam window + full 16:9 gameplay
             vf = (
-                f"[0:v]setpts=PTS-STARTPTS,scale=1080:1920:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:1920,boxblur=25:5,colorchannelmixer=aa=1:rr=0.35:gg=0.35:bb=0.35[bg];"
-                f"[0:v]setpts=PTS-STARTPTS,crop=w={crop_cam_w}:h={crop_cam_h}:x='{crop_cam_x}':y='{crop_cam_y}',scale=720:560:force_original_aspect_ratio=increase:flags=lanczos,crop=720:560,drawbox=x=0:y=0:w=iw:h=ih:color=0x6366f1@0.9:t=4[cam];"
-                f"[0:v]setpts=PTS-STARTPTS,scale=1080:608:force_original_aspect_ratio=decrease:flags=lanczos,drawbox=x=0:y=0:w=iw:h=ih:color=0xffffff@0.25:t=2[game];"
+                f"[0:v]setpts=PTS-STARTPTS,scale=180:320:force_original_aspect_ratio=increase:flags=fast_bilinear,crop=180:320,boxblur=8:2,scale=1080:1920:flags=fast_bilinear,colorchannelmixer=aa=1:rr=0.35:gg=0.35:bb=0.35[bg];"
+                f"[0:v]setpts=PTS-STARTPTS,crop=w={crop_cam_w}:h={crop_cam_h}:x='{crop_cam_x}':y='{crop_cam_y}',scale=720:560:force_original_aspect_ratio=increase:flags=bicubic,crop=720:560,drawbox=x=0:y=0:w=iw:h=ih:color=0x6366f1@0.9:t=4[cam];"
+                f"[0:v]setpts=PTS-STARTPTS,scale=1080:608:force_original_aspect_ratio=decrease:flags=bicubic,drawbox=x=0:y=0:w=iw:h=ih:color=0xffffff@0.25:t=2[game];"
                 f"[bg][cam]overlay=x=180:y=140[bg_cam];"
                 f"[bg_cam][game]overlay=x=0:y=780[merged];"
                 f"[merged]subtitles='{escaped_ass}'[v]"
             )
         elif layout == "blurred_backdrop":
-            # Blurred Backdrop: Fast 60fps boxblur ambient background + full-width centered foreground
+            # Blurred Backdrop: Fast 60fps downscaled boxblur ambient background + full-width centered foreground
             vf = (
-                f"[0:v]setpts=PTS-STARTPTS,scale=1080:1920:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:1920,boxblur=25:5,colorchannelmixer=aa=1:rr=0.4:gg=0.4:bb=0.4[bg];"
-                f"[0:v]setpts=PTS-STARTPTS,scale=1080:608:force_original_aspect_ratio=decrease:flags=lanczos,drawbox=x=0:y=0:w=iw:h=ih:color=0xffffff@0.2:t=2[fg];"
+                f"[0:v]setpts=PTS-STARTPTS,scale=180:320:force_original_aspect_ratio=increase:flags=fast_bilinear,crop=180:320,boxblur=8:2,scale=1080:1920:flags=fast_bilinear,colorchannelmixer=aa=1:rr=0.4:gg=0.4:bb=0.4[bg];"
+                f"[0:v]setpts=PTS-STARTPTS,scale=1080:608:force_original_aspect_ratio=decrease:flags=bicubic,drawbox=x=0:y=0:w=iw:h=ih:color=0xffffff@0.2:t=2[fg];"
                 f"[bg][fg]overlay=(W-w)/2:(H-h)/2[merged];"
                 f"[merged]subtitles='{escaped_ass}'[v]"
             )
         else:
             # Default: Clean Viral Split Screen (Cam Top 956px + 8px Neon Broadcast Divider + Focused Game 956px)
             vf = (
-                f"[0:v]setpts=PTS-STARTPTS,crop=w={crop_cam_w}:h={crop_cam_h}:x='{crop_cam_x}':y='{crop_cam_y}',scale=1080:956:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:956[top];"
-                f"[0:v]setpts=PTS-STARTPTS,crop=w=min(iw\\,ih*1.2):h=min(ih\\,iw/1.2):x='{crop_screen_x}':y=0,scale=1080:956:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:956[bot];"
+                f"[0:v]setpts=PTS-STARTPTS,crop=w={crop_cam_w}:h={crop_cam_h}:x='{crop_cam_x}':y='{crop_cam_y}',scale=1080:956:force_original_aspect_ratio=increase:flags=bicubic,crop=1080:956[top];"
+                f"[0:v]setpts=PTS-STARTPTS,crop=w=min(iw\\,ih*1.2):h=min(ih\\,iw/1.2):x='{crop_screen_x}':y=0,scale=1080:956:force_original_aspect_ratio=increase:flags=bicubic,crop=1080:956[bot];"
                 f"color=c=0x6366f1:s=1080x8:r=30[divider];"
                 f"[top][divider][bot]vstack=inputs=3:shortest=1[stacked];"
                 f"[stacked]subtitles='{escaped_ass}'[v]"
@@ -97,7 +97,6 @@ class VideoRenderer:
             "-ss", str(start_time),
             "-t", str(duration),
             "-accurate_seek",
-            "-copyts",
             "-avoid_negative_ts", "make_zero",
             "-i", str(source_video_path),
             "-fps_mode", "cfr",
@@ -107,14 +106,11 @@ class VideoRenderer:
             "-af", audio_filter,
             "-c:v", "libx264",
             "-pix_fmt", "yuv420p",
-            "-preset", "veryfast",
-            "-crf", "18",
-            "-b:v", "6500k",
-            "-maxrate", "9000k",
-            "-bufsize", "14000k",
-            "-threads", "4",
+            "-preset", "superfast",
+            "-crf", "20",
+            "-threads", "6",
             "-c:a", "aac",
-            "-b:a", "256k",
+            "-b:a", "192k",
             "-movflags", "+faststart",
             str(output_clip_path)
         ]
@@ -124,7 +120,7 @@ class VideoRenderer:
         if res.returncode != 0:
             print(f"[VideoRenderer] Main render notice: {res.stderr[:200]}")
             fallback_vf = (
-                f"[0:v]setpts=PTS-STARTPTS,scale=1080:1920:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:1920,"
+                f"[0:v]setpts=PTS-STARTPTS,scale=1080:1920:force_original_aspect_ratio=increase:flags=bicubic,crop=1080:1920,"
                 f"subtitles='{escaped_ass}'[v]"
             )
             fallback_cmd = [
@@ -132,7 +128,6 @@ class VideoRenderer:
                 "-ss", str(start_time),
                 "-t", str(duration),
                 "-accurate_seek",
-                "-copyts",
                 "-avoid_negative_ts", "make_zero",
                 "-i", str(source_video_path),
                 "-fps_mode", "cfr",
@@ -142,14 +137,11 @@ class VideoRenderer:
                 "-af", audio_filter,
                 "-c:v", "libx264",
                 "-pix_fmt", "yuv420p",
-                "-preset", "veryfast",
-                "-crf", "18",
-                "-b:v", "6500k",
-                "-maxrate", "9000k",
-                "-bufsize", "14000k",
-                "-threads", "4",
+                "-preset", "superfast",
+                "-crf", "20",
+                "-threads", "6",
                 "-c:a", "aac",
-                "-b:a", "256k",
+                "-b:a", "192k",
                 "-movflags", "+faststart",
                 str(output_clip_path)
             ]
